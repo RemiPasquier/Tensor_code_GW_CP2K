@@ -1093,6 +1093,10 @@ MODULE input_constants
                                                evGW0 = 36, &
                                                evGW = 37
 
+   ! tensor parameters (for switching between full and sparse tensors)
+   INTEGER, PARAMETER, PUBLIC               :: case_dbt = 1, &
+                                               case_fmt = 2
+
    ! periodic RESP parameters
    INTEGER, PARAMETER, PUBLIC               :: do_resp_x_dir = 0, &
                                                do_resp_y_dir = 1, &
