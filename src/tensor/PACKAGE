@@ -1,6 +1,6 @@
 {
     "description": "Tensors",
-    "requires": [
+    "requires": [	
         "../dbm",
         "../dbt",
         "../dbx",
@@ -8,6 +8,7 @@
         "../common",
         "../mpiwrap",
         "../offload",
+	"../fm",
     ],
     "public": ["tensor_api.F"],
 }

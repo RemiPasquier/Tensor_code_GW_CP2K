@@ -22,6 +22,7 @@ MODULE gw_small_cell_full_kp
                                               cp_fm_release,&
                                               cp_fm_set_all,&
                                               cp_fm_type
+   USE tensor_api,                      ONLY: tensor_type
    USE dbt_api,                         ONLY: dbt_clear,&
                                               dbt_contract,&
                                               dbt_copy,&

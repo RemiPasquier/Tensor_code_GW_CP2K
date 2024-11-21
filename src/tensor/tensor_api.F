@@ -1,6 +1,6 @@
 MODULE tensor_api
 
-   USE tensor_types,                       ONLY: tensor_create, tensor_type
+   USE tensor_types,                       ONLY: tensor_clear, tensor_type
 
    IMPLICIT NONE
 
@@ -8,6 +8,6 @@ MODULE tensor_api
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'tensor_api'
 
-   PUBLIC :: tensor_create
+   PUBLIC :: tensor_clear,tensor_type
 
 END MODULE tensor_api
