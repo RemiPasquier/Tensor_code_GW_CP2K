@@ -1,0 +1,13 @@
+{
+    "description": "Tensors",
+    "requires": [
+        "../dbm",
+        "../dbt",
+        "../dbx",
+        "../base",
+        "../common",
+        "../mpiwrap",
+        "../offload",
+    ],
+    "public": ["tensor_api.F"],
+}
