@@ -22,7 +22,12 @@ MODULE gw_small_cell_full_kp
                                               cp_fm_release,&
                                               cp_fm_set_all,&
                                               cp_fm_type
-   USE tensor_api,                      ONLY: tensor_type
+   USE tensor_api,                      ONLY: tensor_type,&
+                                              tensor_clear
+                                              !tensor_contract,&
+                                              !tensor_copy,&
+                                              !tensor_create,&
+                                              !tensor_destroy
    USE dbt_api,                         ONLY: dbt_clear,&
                                               dbt_contract,&
                                               dbt_copy,&
@@ -334,8 +339,8 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE get_t_3c_int(t_3c_int, bs_env, j_cell, k_cell)
 
-!      TYPE(dbt_type)                                     :: t_3c_int
-      TYPE(tensor_type)                                     :: t_3c_int
+      TYPE(dbt_type)                                     :: t_3c_int
+!      TYPE(tensor_type)                                     :: t_3c_int
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER                                            :: j_cell, k_cell
 
@@ -345,8 +350,8 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-!      CALL dbt_clear(t_3c_int)
-      CALL tensor_clear(t_3c_int)
+      CALL dbt_clear(t_3c_int)
+!      CALL tensor_clear(t_3c_int)
       IF (j_cell < k_cell) THEN
          CALL dbt_copy(bs_env%t_3c_int(k_cell, j_cell), t_3c_int, order=[1, 3, 2])
       ELSE
