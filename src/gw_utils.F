@@ -129,6 +129,10 @@ MODULE gw_utils
                                               distribution_3d_create,&
                                               distribution_3d_type,&
                                               neighbor_list_3c_type
+   USE gw_qs_tensor,                    ONLY: tensor_build_3c_integrals, &
+                                              tensor_create_3c_tensor, &
+                                              tensor_create_2c_tensor,&
+                                              tensor_get_tensor_occupancy
    USE rpa_gw,                          ONLY: continuation_pade
 #include "base/base_uses.f90"
 
@@ -815,7 +819,7 @@ CONTAINS
       ! do not compute full 3c integrals at once because it may cause out of memory
       DO RI_atom = 1, bs_env%n_atom, n_atom_step
 
-         CALL build_3c_integrals(t_3c_global_array, &
+         CALL tensor_build_3c_integrals(t_3c_global_array, &
                                  bs_env%eps_filter, &
                                  qs_env, &
                                  nl_3c_global, &
@@ -831,7 +835,7 @@ CONTAINS
 
          CALL bs_env%para_env%sync()
 
-         CALL get_tensor_occupancy(t_3c_global_array(1, 1), nze, occ)
+         CALL tensor_get_tensor_occupancy(t_3c_global_array(1, 1), nze, occ)
          non_zero_elements_sum = non_zero_elements_sum + nze
          occupation_sum = occupation_sum + occ
 
@@ -883,25 +887,25 @@ CONTAINS
       INTEGER                                            :: handle
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: dist_1, dist_2
       INTEGER, DIMENSION(2)                              :: pdims_2d
-      TYPE(tensor_pgrid_type)                               :: pgrid_2d
+      TYPE(tensor_pgrid_type)                            :: pgrid_2d
 
       CALL timeset(routineN, handle)
 
       ! inspired from rpa_im_time.F / hfx_types.F
 
       pdims_2d = 0
-      CALL tensor_pgrid_create(bs_env%para_env_tensor, pdims_2d, pgrid_2d)
+      CALL tensor_pgrid_create(bs_env%t_G, bs_env%para_env_tensor, pdims_2d, pgrid_2d)
 
-      CALL create_2c_tensor(bs_env%t_G, dist_1, dist_2, pgrid_2d, sizes_AO, sizes_AO, &
+      CALL tensor_create_2c_tensor(bs_env%t_G, dist_1, dist_2, pgrid_2d, sizes_AO, sizes_AO, &
                             name="(AO | AO)")
       DEALLOCATE (dist_1, dist_2)
-      CALL create_2c_tensor(bs_env%t_chi, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
+      CALL tensor_create_2c_tensor(bs_env%t_chi, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
                             name="(RI | RI)")
       DEALLOCATE (dist_1, dist_2)
-      CALL create_2c_tensor(bs_env%t_W, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
+      CALL tensor_create_2c_tensor(bs_env%t_W, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
                             name="(RI | RI)")
       DEALLOCATE (dist_1, dist_2)
-      CALL tensor_pgrid_destroy(pgrid_2d)
+      CALL tensor_pgrid_destroy(bs_env%t_G,pgrid_2d)
 
       CALL timestop(handle)
 
@@ -945,8 +949,8 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       pdims_3d = 0
-      CALL tensor_pgrid_create(para_env, pdims_3d, pgrid_3d)
-      CALL create_3c_tensor(tensor, dist_RI, dist_AO_1, dist_AO_2, &
+      CALL tensor_pgrid_create(tensor,para_env, pdims_3d, pgrid_3d)
+      CALL tensor_create_3c_tensor(tensor, dist_RI, dist_AO_1, dist_AO_2, &
                             pgrid_3d, sizes_RI, sizes_AO, sizes_AO, &
                             map1=map1, map2=map2, name=tensor_name)
 
@@ -958,7 +962,7 @@ CONTAINS
 
       IF (my_create_nl_3c) THEN
          CALL get_qs_env(qs_env, nkind=nkind, particle_set=particle_set)
-         CALL tensor_mp_environ_pgrid(pgrid_3d, pdims, pcoord)
+         CALL tensor_mp_environ_pgrid(tensor, pgrid_3d, pdims, pcoord)
          CALL mp_comm_t3c_2%create(pgrid_3d%grid%mp_comm_2d, 3, pdims)
          CALL distribution_3d_create(dist_3d, dist_RI, dist_AO_1, dist_AO_2, &
                                      nkind, particle_set, mp_comm_t3c_2, own_comm=.TRUE.)
@@ -972,7 +976,7 @@ CONTAINS
       END IF
 
       DEALLOCATE (dist_RI, dist_AO_1, dist_AO_2)
-      CALL tensor_pgrid_destroy(pgrid_3d)
+      CALL tensor_pgrid_destroy(tensor,pgrid_3d)
 
       CALL timestop(handle)
 
@@ -1013,7 +1017,7 @@ CONTAINS
 !> \param qs_env ...
 ! **************************************************************************************************
    SUBROUTINE get_max_dist_AO_atoms(t_3c_int, max_dist_AO_atoms, qs_env)
-      TYPE(tensor_type)                                     :: t_3c_int
+      TYPE(tensor_type)                                  :: t_3c_int
       REAL(KIND=dp)                                      :: max_dist_AO_atoms
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
@@ -1038,8 +1042,8 @@ CONTAINS
 !$OMP SHARED(t_3c_int, max_dist_AO_atoms, num_cells, index_to_cell, particle_set, cell) &
 !$OMP PRIVATE(iter,atom_ind,rab, abs_rab, atom_1, atom_2)
       CALL tensor_iterator_start(iter, t_3c_int)
-      DO WHILE (tensor_iterator_blocks_left(iter))
-         CALL tensor_iterator_next_block(iter, atom_ind)
+      DO WHILE (tensor_iterator_blocks_left(t_3c_int,iter))
+         CALL tensor_iterator_next_block(t_3c_int,iter, atom_ind)
 
          atom_1 = atom_ind(2)
          atom_2 = atom_ind(3)
@@ -1051,7 +1055,7 @@ CONTAINS
          max_dist_AO_atoms = MAX(max_dist_AO_atoms, abs_rab)
 
       END DO
-      CALL tensor_iterator_stop(iter)
+      CALL tensor_iterator_stop(t_3c_int,iter)
 !$OMP END PARALLEL
 
       CALL para_env%max(max_dist_AO_atoms)
@@ -2184,7 +2188,7 @@ CONTAINS
          END DO
       END DO
 
-      CALL build_3c_integrals(bs_env%t_3c_int, &
+      CALL tensor_build_3c_integrals(bs_env%t_3c_int, &
                               bs_env%eps_filter, &
                               qs_env, &
                               bs_env%nl_3c, &

@@ -447,10 +447,25 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE safe_tensor_destroy(t)
       TYPE(tensor_type)                                     :: t
-
-      IF ((ASSOCIATED(t%dbt)) .or. (ASSOCIATED(t%fm_t))) CALL tensor_destroy(t)
+      
+      IF (ASSOCIATED(t%dbt%matrix_rep) .or. ASSOCIATED(t%fm_t%fm)) CALL tensor_destroy(t)
 
    END SUBROUTINE safe_tensor_destroy
+
+! **************************************************************************************************
+!> \brief ...
+!> \param t ...
+! **************************************************************************************************
+   SUBROUTINE safe_dbt_destroy(t)
+      TYPE(dbt_type)                                     :: t
+
+      IF (ASSOCIATED(t%matrix_rep)) CALL dbt_destroy(t)
+
+   END SUBROUTINE safe_dbt_destroy
+
+
+
+
 
 ! **************************************************************************************************
 !> \brief ...

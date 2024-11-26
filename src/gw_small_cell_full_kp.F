@@ -37,7 +37,7 @@ MODULE gw_small_cell_full_kp
    USE gw_communication,         ONLY: fm_to_local_array,&
                                               fm_to_local_tensor,&
                                               local_array_to_fm,&
-                                              local_dbt_to_global_fm
+                                              local_tensor_to_global_fm
    USE gw_kp_to_real_space_and_back,    ONLY: add_ikp_to_all_rs,&
                                               fm_add_ikp_to_rs,&
                                               fm_trafo_rs_to_ikp,&
@@ -191,7 +191,7 @@ CONTAINS
 
          CALL bs_env%para_env%sync()
 
-         CALL local_dbt_to_global_fm(t_chi_R, bs_env%fm_chi_R_t(:, i_t), bs_env%mat_RI_RI, &
+         CALL local_tensor_to_global_fm(t_chi_R, bs_env%fm_chi_R_t(:, i_t), bs_env%mat_RI_RI, &
                                      bs_env%mat_RI_RI_tensor, bs_env)
 
          CALL destroy_t_1d(Gocc_S)
@@ -350,8 +350,8 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL tensor_create(t_3c_int)
-!      CALL tensor_clear(t_3c_int)
+!      CALL tensor_create(t_3c_int)
+      CALL tensor_clear(t_3c_int)
       IF (j_cell < k_cell) THEN
          CALL tensor_copy(bs_env%t_3c_int(k_cell, j_cell), t_3c_int, order=[1, 3, 2])
       ELSE
@@ -521,8 +521,8 @@ CONTAINS
       ! remove all data from t_Gocc and t_Gvir to safe memory
       DO i_cell_R1 = 1, bs_env%nimages_3c
          DO i_cell_R2 = 1, bs_env%nimages_3c
-            CALL tensor_create(t_Gocc(i_cell_R1, i_cell_R2))
-            CALL tensor_create(t_Gvir(i_cell_R1, i_cell_R2))
+            CALL tensor_clear(t_Gocc(i_cell_R1, i_cell_R2))
+            CALL tensor_clear(t_Gvir(i_cell_R1, i_cell_R2))
          END DO
       END DO
 
@@ -893,7 +893,7 @@ CONTAINS
 
          CALL bs_env%para_env%sync()
 
-         CALL local_dbt_to_global_fm(Sigma_x_R, bs_env%fm_Sigma_x_R, bs_env%mat_ao_ao, &
+         CALL local_tensor_to_global_fm(Sigma_x_R, bs_env%fm_Sigma_x_R, bs_env%mat_ao_ao, &
                                      bs_env%mat_ao_ao_tensor, bs_env)
 
       END DO ! ispin
@@ -981,11 +981,11 @@ CONTAINS
 
             CALL bs_env%para_env%sync()
 
-            CALL local_dbt_to_global_fm(Sigma_c_R_pos_tau, &
+            CALL local_tensor_to_global_fm(Sigma_c_R_pos_tau, &
                                         bs_env%fm_Sigma_c_R_pos_tau(:, i_t, ispin), &
                                         bs_env%mat_ao_ao, bs_env%mat_ao_ao_tensor, bs_env)
 
-            CALL local_dbt_to_global_fm(Sigma_c_R_neg_tau, &
+            CALL local_tensor_to_global_fm(Sigma_c_R_neg_tau, &
                                         bs_env%fm_Sigma_c_R_neg_tau(:, i_t, ispin), &
                                         bs_env%mat_ao_ao, bs_env%mat_ao_ao_tensor, bs_env)
 
@@ -1325,7 +1325,7 @@ CONTAINS
 
          END DO ! i_cell_R
 
-         CALL tensor_create(t_G_2)
+         CALL tensor_clear(t_G_2)
 
          CALL timestop(handle2)
 
@@ -1335,7 +1335,7 @@ CONTAINS
       IF (clear_t_W) THEN
          DO i_cell_S1 = 1, bs_env%nimages_3c
             DO i_cell_R1 = 1, bs_env%nimages_3c
-               CALL tensor_create(t_W(i_cell_S1, i_cell_R1))
+               CALL tensor_clear(t_W(i_cell_S1, i_cell_R1))
             END DO
          END DO
       END IF

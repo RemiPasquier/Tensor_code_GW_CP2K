@@ -46,14 +46,14 @@ MODULE gw_large_cell_gamma
    USE cp_output_handling,              ONLY: cp_p_file,&
                                               cp_print_key_should_output,&
                                               cp_print_key_unit_nr
-   USE dbt_api,                         ONLY: dbt_clear,&
-                                              dbt_contract,&
-                                              dbt_copy,&
-                                              dbt_create,&
-                                              dbt_destroy,&
-                                              dbt_type
+   USE tensor_api,                         ONLY: tensor_clear,&
+                                              tensor_contract,&
+                                              tensor_copy,&
+                                              tensor_create,&
+                                              tensor_destroy,&
+                                              tensor_type
    USE gw_communication,                ONLY: fm_to_local_tensor,&
-                                              local_dbt_to_global_mat
+                                              local_tensor_to_global_mat
    USE gw_utils,                        ONLY: analyt_conti_and_print,&
                                               de_init_bs_env,&
                                               time_to_freq
@@ -81,6 +81,7 @@ MODULE gw_large_cell_gamma
    USE qs_tensors,                      ONLY: build_3c_integrals
    USE rpa_gw_kpoints_util,             ONLY: cp_cfm_power,&
                                               cp_cfm_upper_to_full
+   USE gw_qs_tensor,                 ONLY: tensor_build_3c_integrals
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -154,7 +155,7 @@ CONTAINS
       INTEGER, DIMENSION(2)                              :: i_atoms, IL_atoms, j_atoms
       LOGICAL                                            :: dist_too_long_i, dist_too_long_j
       REAL(KIND=dp)                                      :: t1, tau
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
                                                             t_3c_for_Gvir, t_3c_x_Gocc, &
                                                             t_3c_x_Gocc_2, t_3c_x_Gvir, &
                                                             t_3c_x_Gvir_2
@@ -237,11 +238,11 @@ CONTAINS
                   END DO ! IL_atoms
 
                   ! 6. reorder tensors
-                  CALL dbt_copy(t_3c_x_Gocc, t_3c_x_Gocc_2, move_data=.TRUE., order=[1, 3, 2])
-                  CALL dbt_copy(t_3c_x_Gvir, t_3c_x_Gvir_2, move_data=.TRUE.)
+                  CALL tensor_copy(t_3c_x_Gocc, t_3c_x_Gocc_2, move_data=.TRUE., order=[1, 3, 2])
+                  CALL tensor_copy(t_3c_x_Gvir, t_3c_x_Gvir_2, move_data=.TRUE.)
 
                   ! 7. tensor operation χ_PQ(iτ,k=0) = sum_λν M_λνP(iτ) N_νλQ(iτ),
-                  CALL dbt_contract(alpha=bs_env%spin_degeneracy, &
+                  CALL tensor_contract(alpha=bs_env%spin_degeneracy, &
                                     tensor_1=t_3c_x_Gocc_2, tensor_2=t_3c_x_Gvir_2, &
                                     beta=1.0_dp, tensor_3=bs_env%t_chi, &
                                     contract_1=[2, 3], notcontract_1=[1], map_1=[1], &
@@ -255,7 +256,7 @@ CONTAINS
          ! 8. communicate data of χ_PQ(iτ,k=0) in tensor bs_env%t_chi (which local in the
          !    subgroup) to the global dbcsr matrix mat_chi_Gamma_tau (which stores
          !    χ_PQ(iτ,k=0) for all time points)
-         CALL local_dbt_to_global_mat(bs_env%t_chi, bs_env%mat_RI_RI_tensor%matrix, &
+         CALL local_tensor_to_global_mat(bs_env%t_chi, bs_env%mat_RI_RI_tensor%matrix, &
                                       mat_chi_Gamma_tau(i_t)%matrix, bs_env%para_env)
 
          CALL write_matrix(mat_chi_Gamma_tau(i_t)%matrix, i_t, bs_env%chi_name, &
@@ -337,7 +338,7 @@ CONTAINS
    SUBROUTINE create_tensors_chi(t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, t_3c_for_Gvir, &
                                  t_3c_x_Gocc, t_3c_x_Gvir, t_3c_x_Gocc_2, t_3c_x_Gvir_2, bs_env)
 
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
                                                             t_3c_for_Gvir, t_3c_x_Gocc, &
                                                             t_3c_x_Gvir, t_3c_x_Gocc_2, &
                                                             t_3c_x_Gvir_2
@@ -349,14 +350,14 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_G, t_2c_Gocc)
-      CALL dbt_create(bs_env%t_G, t_2c_Gvir)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_for_Gocc)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_for_Gvir)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_Gocc)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_Gvir)
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_3c_x_Gocc_2)
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_3c_x_Gvir_2)
+      CALL tensor_create(bs_env%t_G, t_2c_Gocc)
+      CALL tensor_create(bs_env%t_G, t_2c_Gvir)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_for_Gocc)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_for_Gvir)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_Gocc)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_Gvir)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_3c_x_Gocc_2)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_3c_x_Gvir_2)
 
       CALL timestop(handle)
 
@@ -375,7 +376,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE destroy_tensors_chi(t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, t_3c_for_Gvir, &
                                   t_3c_x_Gocc, t_3c_x_Gvir, t_3c_x_Gocc_2, t_3c_x_Gvir_2)
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_3c_for_Gocc, &
                                                             t_3c_for_Gvir, t_3c_x_Gocc, &
                                                             t_3c_x_Gvir, t_3c_x_Gocc_2, &
                                                             t_3c_x_Gvir_2
@@ -386,14 +387,14 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_destroy(t_2c_Gocc)
-      CALL dbt_destroy(t_2c_Gvir)
-      CALL dbt_destroy(t_3c_for_Gocc)
-      CALL dbt_destroy(t_3c_for_Gvir)
-      CALL dbt_destroy(t_3c_x_Gocc)
-      CALL dbt_destroy(t_3c_x_Gvir)
-      CALL dbt_destroy(t_3c_x_Gocc_2)
-      CALL dbt_destroy(t_3c_x_Gvir_2)
+      CALL tensor_destroy(t_2c_Gocc)
+      CALL tensor_destroy(t_2c_Gvir)
+      CALL tensor_destroy(t_3c_for_Gocc)
+      CALL tensor_destroy(t_3c_for_Gvir)
+      CALL tensor_destroy(t_3c_x_Gocc)
+      CALL tensor_destroy(t_3c_x_Gvir)
+      CALL tensor_destroy(t_3c_x_Gocc_2)
+      CALL tensor_destroy(t_3c_x_Gvir_2)
 
       CALL timestop(handle)
 
@@ -560,22 +561,22 @@ CONTAINS
    SUBROUTINE compute_3c_integrals(qs_env, bs_env, t_3c, atoms_AO_1, atoms_AO_2, atoms_RI)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
-      TYPE(dbt_type)                                     :: t_3c
+      TYPE(tensor_type)                                     :: t_3c
       INTEGER, DIMENSION(2), OPTIONAL                    :: atoms_AO_1, atoms_AO_2, atoms_RI
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_3c_integrals'
 
       INTEGER                                            :: handle
       INTEGER, DIMENSION(2)                              :: my_atoms_AO_1, my_atoms_AO_2, my_atoms_RI
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_array
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_array
 
       CALL timeset(routineN, handle)
 
       ! free memory (not clear whether memory has been freed previously)
-      CALL dbt_clear(t_3c)
+      CALL tensor_clear(t_3c)
 
       ALLOCATE (t_3c_array(1, 1))
-      CALL dbt_create(t_3c, t_3c_array(1, 1))
+      CALL tensor_create(t_3c, t_3c_array(1, 1))
 
       IF (PRESENT(atoms_AO_1)) THEN
          my_atoms_AO_1 = atoms_AO_1
@@ -593,7 +594,7 @@ CONTAINS
          my_atoms_RI = [1, bs_env%n_atom]
       END IF
 
-      CALL build_3c_integrals(t_3c_array, &
+      CALL tensor_build_3c_integrals(t_3c_array, &
                               bs_env%eps_filter, &
                               qs_env, &
                               bs_env%nl_3c, &
@@ -607,9 +608,9 @@ CONTAINS
                               bounds_k=atoms_AO_2, &
                               desymmetrize=.FALSE.)
 
-      CALL dbt_copy(t_3c_array(1, 1), t_3c, move_data=.TRUE.)
+      CALL tensor_copy(t_3c_array(1, 1), t_3c, move_data=.TRUE.)
 
-      CALL dbt_destroy(t_3c_array(1, 1))
+      CALL tensor_destroy(t_3c_array(1, 1))
       DEALLOCATE (t_3c_array)
 
       CALL timestop(handle)
@@ -627,7 +628,7 @@ CONTAINS
 !> \param atoms_IL ...
 ! **************************************************************************************************
    SUBROUTINE G_times_3c(t_3c_for_G, t_G, t_M, bs_env, atoms_AO_1, atoms_AO_2, atoms_IL)
-      TYPE(dbt_type)                                     :: t_3c_for_G, t_G, t_M
+      TYPE(tensor_type)                                     :: t_3c_for_G, t_G, t_M
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER, DIMENSION(2)                              :: atoms_AO_1, atoms_AO_2, atoms_IL
 
@@ -651,7 +652,7 @@ CONTAINS
       bounds_l(1:2) = [bs_env%i_ao_start_from_atom(atoms_AO_1(1)), &
                        bs_env%i_ao_end_from_atom(atoms_AO_1(2))]
 
-      CALL dbt_contract(alpha=1.0_dp, &
+      CALL tensor_contract(alpha=1.0_dp, &
                         tensor_1=t_3c_for_G, &
                         tensor_2=t_G, &
                         beta=1.0_dp, &
@@ -663,7 +664,7 @@ CONTAINS
                         bounds_3=bounds_l, &
                         filter_eps=bs_env%eps_filter)
 
-      CALL dbt_clear(t_3c_for_G)
+      CALL tensor_clear(t_3c_for_G)
 
       CALL timestop(handle)
 
@@ -1622,16 +1623,16 @@ CONTAINS
       REAL(KIND=dp)                                      :: t1
       TYPE(cp_fm_type), ALLOCATABLE, DIMENSION(:, :)     :: fm_Vtr_Gamma
       TYPE(dbcsr_type)                                   :: mat_Sigma_x_Gamma
-      TYPE(dbt_type)                                     :: t_2c_D, t_2c_Sigma_x, t_2c_V, t_3c_x_V
+      TYPE(tensor_type)                                     :: t_2c_D, t_2c_Sigma_x, t_2c_V, t_3c_x_V
 
       CALL timeset(routineN, handle)
 
       t1 = m_walltime()
 
-      CALL dbt_create(bs_env%t_G, t_2c_D)
-      CALL dbt_create(bs_env%t_W, t_2c_V)
-      CALL dbt_create(bs_env%t_G, t_2c_Sigma_x)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_V)
+      CALL tensor_create(bs_env%t_G, t_2c_D)
+      CALL tensor_create(bs_env%t_W, t_2c_V)
+      CALL tensor_create(bs_env%t_G, t_2c_Sigma_x)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_V)
       CALL dbcsr_create(mat_Sigma_x_Gamma, template=bs_env%mat_ao_ao%matrix)
 
       ! 1. Compute truncated Coulomb operator matrix V^tr(k=0) (cutoff rad: cellsize/2)
@@ -1673,7 +1674,7 @@ CONTAINS
             END DO ! j_atoms
          END DO ! i_atoms
 
-         CALL local_dbt_to_global_mat(t_2c_Sigma_x, bs_env%mat_ao_ao_tensor%matrix, &
+         CALL local_tensor_to_global_mat(t_2c_Sigma_x, bs_env%mat_ao_ao_tensor%matrix, &
                                       mat_Sigma_x_Gamma, bs_env%para_env)
 
          CALL write_matrix(mat_Sigma_x_Gamma, ispin, bs_env%Sigma_x_name, &
@@ -1690,10 +1691,10 @@ CONTAINS
       END IF
 
       CALL dbcsr_release(mat_Sigma_x_Gamma)
-      CALL dbt_destroy(t_2c_D)
-      CALL dbt_destroy(t_2c_V)
-      CALL dbt_destroy(t_2c_Sigma_x)
-      CALL dbt_destroy(t_3c_x_V)
+      CALL tensor_destroy(t_2c_D)
+      CALL tensor_destroy(t_2c_V)
+      CALL tensor_destroy(t_2c_Sigma_x)
+      CALL tensor_destroy(t_3c_x_V)
       CALL cp_fm_release(fm_Vtr_Gamma)
 
       CALL timestop(handle)
@@ -1720,7 +1721,7 @@ CONTAINS
       INTEGER, DIMENSION(2)                              :: i_atoms, j_atoms
       REAL(KIND=dp)                                      :: t1, tau
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: mat_Sigma_neg_tau, mat_Sigma_pos_tau
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, &
                                                             t_2c_Sigma_neg_tau, &
                                                             t_2c_Sigma_pos_tau, t_2c_W, t_3c_x_W
 
@@ -1802,9 +1803,9 @@ CONTAINS
 
             ! 4. communicate data tensor t_2c_Sigma (which is local in the subgroup)
             !    to the global dbcsr matrix mat_Sigma_pos/neg_tau (which stores Σ for all iτ)
-            CALL local_dbt_to_global_mat(t_2c_Sigma_neg_tau, bs_env%mat_ao_ao_tensor%matrix, &
+            CALL local_tensor_to_global_mat(t_2c_Sigma_neg_tau, bs_env%mat_ao_ao_tensor%matrix, &
                                          mat_Sigma_neg_tau(i_t, ispin)%matrix, bs_env%para_env)
-            CALL local_dbt_to_global_mat(t_2c_Sigma_pos_tau, bs_env%mat_ao_ao_tensor%matrix, &
+            CALL local_tensor_to_global_mat(t_2c_Sigma_pos_tau, bs_env%mat_ao_ao_tensor%matrix, &
                                          mat_Sigma_pos_tau(i_t, ispin)%matrix, bs_env%para_env)
 
             CALL write_matrix(mat_Sigma_pos_tau(i_t, ispin)%matrix, read_write_index, &
@@ -1856,7 +1857,7 @@ CONTAINS
                                      mat_Sigma_neg_tau, mat_Sigma_pos_tau)
 
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_2c_W, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_2c_W, &
                                                             t_2c_Sigma_neg_tau, &
                                                             t_2c_Sigma_pos_tau, t_3c_x_W
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: mat_Sigma_neg_tau, mat_Sigma_pos_tau
@@ -1867,12 +1868,12 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_G, t_2c_Gocc)
-      CALL dbt_create(bs_env%t_G, t_2c_Gvir)
-      CALL dbt_create(bs_env%t_W, t_2c_W)
-      CALL dbt_create(bs_env%t_G, t_2c_Sigma_neg_tau)
-      CALL dbt_create(bs_env%t_G, t_2c_Sigma_pos_tau)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_W)
+      CALL tensor_create(bs_env%t_G, t_2c_Gocc)
+      CALL tensor_create(bs_env%t_G, t_2c_Gvir)
+      CALL tensor_create(bs_env%t_W, t_2c_W)
+      CALL tensor_create(bs_env%t_G, t_2c_Sigma_neg_tau)
+      CALL tensor_create(bs_env%t_G, t_2c_Sigma_pos_tau)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_W)
 
       NULLIFY (mat_Sigma_neg_tau, mat_Sigma_pos_tau)
       ALLOCATE (mat_Sigma_neg_tau(bs_env%num_time_freq_points, bs_env%n_spin))
@@ -1905,18 +1906,18 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER, DIMENSION(2)                              :: i_atoms, j_atoms
-      TYPE(dbt_type)                                     :: t_3c_x_W, t_2c_W
+      TYPE(tensor_type)                                     :: t_3c_x_W, t_2c_W
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_3c_and_contract_W'
 
       INTEGER                                            :: handle, RI_intval_idx
       INTEGER, DIMENSION(2)                              :: bounds_j, RI_atoms
-      TYPE(dbt_type)                                     :: t_3c_for_W, t_3c_x_W_tmp
+      TYPE(tensor_type)                                     :: t_3c_for_W, t_3c_x_W_tmp
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_3c_x_W_tmp)
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_3c_for_W)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_3c_x_W_tmp)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_3c_for_W)
 
       bounds_j(1:2) = [bs_env%i_RI_start_from_atom(j_atoms(1)), &
                        bs_env%i_RI_end_from_atom(j_atoms(2))]
@@ -1929,7 +1930,7 @@ CONTAINS
                                    atoms_AO_1=i_atoms, atoms_RI=RI_atoms)
 
          ! 2. tensor operation M_νσQ(iτ) = sum_P (νσ|P) W^MIC_PQ(iτ)
-         CALL dbt_contract(alpha=1.0_dp, &
+         CALL tensor_contract(alpha=1.0_dp, &
                            tensor_1=t_2c_W, &
                            tensor_2=t_3c_for_W, &
                            beta=1.0_dp, &
@@ -1942,10 +1943,10 @@ CONTAINS
       END DO ! RI_atoms
 
       ! 3. reorder tensor
-      CALL dbt_copy(t_3c_x_W_tmp, t_3c_x_W, order=[1, 2, 3], move_data=.TRUE.)
+      CALL tensor_copy(t_3c_x_W_tmp, t_3c_x_W, order=[1, 2, 3], move_data=.TRUE.)
 
-      CALL dbt_destroy(t_3c_x_W_tmp)
-      CALL dbt_destroy(t_3c_for_W)
+      CALL tensor_destroy(t_3c_x_W_tmp)
+      CALL tensor_destroy(t_3c_for_W)
 
       CALL timestop(handle)
 
@@ -1967,7 +1968,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE contract_to_Sigma(t_2c_G, t_3c_x_W, t_2c_Sigma, i_atoms, j_atoms, qs_env, bs_env, &
                                 occ, vir, clear_W, can_skip)
-      TYPE(dbt_type)                                     :: t_2c_G, t_3c_x_W, t_2c_Sigma
+      TYPE(tensor_type)                                     :: t_2c_G, t_3c_x_W, t_2c_Sigma
       INTEGER, DIMENSION(2)                              :: i_atoms, j_atoms
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
@@ -1980,7 +1981,7 @@ CONTAINS
       INTEGER(KIND=int_8)                                :: flop
       INTEGER, DIMENSION(2)                              :: bounds_i, IL_atoms
       REAL(KIND=dp)                                      :: sign_Sigma
-      TYPE(dbt_type)                                     :: t_3c_for_G, t_3c_x_G, t_3c_x_G_2
+      TYPE(tensor_type)                                     :: t_3c_for_G, t_3c_x_G, t_3c_x_G_2
 
       CALL timeset(routineN, handle)
 
@@ -1988,9 +1989,9 @@ CONTAINS
       IF (occ) sign_Sigma = -1.0_dp
       IF (vir) sign_Sigma = 1.0_dp
 
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_for_G)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_G)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_x_G_2)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_for_G)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_G)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_x_G_2)
 
       bounds_i(1:2) = [bs_env%i_ao_start_from_atom(i_atoms(1)), &
                        bs_env%i_ao_end_from_atom(i_atoms(2))]
@@ -2001,7 +2002,7 @@ CONTAINS
          CALL compute_3c_integrals(qs_env, bs_env, t_3c_for_G, &
                                    atoms_RI=j_atoms, atoms_AO_2=IL_atoms)
 
-         CALL dbt_contract(alpha=1.0_dp, &
+         CALL tensor_contract(alpha=1.0_dp, &
                            tensor_1=t_2c_G, &
                            tensor_2=t_3c_for_G, &
                            beta=1.0_dp, &
@@ -2013,9 +2014,9 @@ CONTAINS
 
       END DO ! IL_atoms
 
-      CALL dbt_copy(t_3c_x_G, t_3c_x_G_2, order=[1, 3, 2], move_data=.TRUE.)
+      CALL tensor_copy(t_3c_x_G, t_3c_x_G_2, order=[1, 3, 2], move_data=.TRUE.)
 
-      CALL dbt_contract(alpha=sign_Sigma, &
+      CALL tensor_contract(alpha=sign_Sigma, &
                         tensor_1=t_3c_x_W, &
                         tensor_2=t_3c_x_G_2, &
                         beta=1.0_dp, &
@@ -2028,9 +2029,9 @@ CONTAINS
          IF (flop == 0_int_8) can_skip = .TRUE.
       END IF
 
-      CALL dbt_destroy(t_3c_for_G)
-      CALL dbt_destroy(t_3c_x_G)
-      CALL dbt_destroy(t_3c_x_G_2)
+      CALL tensor_destroy(t_3c_for_G)
+      CALL tensor_destroy(t_3c_x_G)
+      CALL tensor_destroy(t_3c_x_G_2)
 
       CALL timestop(handle)
 
@@ -2126,7 +2127,7 @@ CONTAINS
                                   t_2c_Sigma_pos_tau, t_3c_x_W, fm_W_MIC_time, &
                                   mat_Sigma_neg_tau, mat_Sigma_pos_tau)
 
-      TYPE(dbt_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_2c_W, &
+      TYPE(tensor_type)                                     :: t_2c_Gocc, t_2c_Gvir, t_2c_W, &
                                                             t_2c_Sigma_neg_tau, &
                                                             t_2c_Sigma_pos_tau, t_3c_x_W
       TYPE(cp_fm_type), ALLOCATABLE, DIMENSION(:)        :: fm_W_MIC_time
@@ -2138,12 +2139,12 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_destroy(t_2c_Gocc)
-      CALL dbt_destroy(t_2c_Gvir)
-      CALL dbt_destroy(t_2c_W)
-      CALL dbt_destroy(t_2c_Sigma_neg_tau)
-      CALL dbt_destroy(t_2c_Sigma_pos_tau)
-      CALL dbt_destroy(t_3c_x_W)
+      CALL tensor_destroy(t_2c_Gocc)
+      CALL tensor_destroy(t_2c_Gvir)
+      CALL tensor_destroy(t_2c_W)
+      CALL tensor_destroy(t_2c_Sigma_neg_tau)
+      CALL tensor_destroy(t_2c_Sigma_pos_tau)
+      CALL tensor_destroy(t_3c_x_W)
       CALL cp_fm_release(fm_W_MIC_time)
       CALL dbcsr_deallocate_matrix_set(mat_Sigma_neg_tau)
       CALL dbcsr_deallocate_matrix_set(mat_Sigma_pos_tau)

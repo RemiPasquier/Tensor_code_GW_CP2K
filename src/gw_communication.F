@@ -40,8 +40,8 @@ MODULE gw_communication
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'gw_communication'
 
-   PUBLIC :: local_dbt_to_global_mat, fm_to_local_tensor, fm_to_local_array, local_array_to_fm, &
-             local_dbt_to_global_fm
+   PUBLIC :: local_tensor_to_global_mat, fm_to_local_tensor, fm_to_local_array, local_array_to_fm, &
+             local_tensor_to_global_fm
 
    TYPE buffer_type
       REAL(KIND=dp), DIMENSION(:), POINTER  :: msg => NULL()
@@ -105,13 +105,13 @@ CONTAINS
 !> \param mat_global ...
 !> \param para_env ...
 ! **************************************************************************************************
-   SUBROUTINE local_dbt_to_global_mat(tensor, mat_tensor, mat_global, para_env)
+   SUBROUTINE local_tensor_to_global_mat(tensor, mat_tensor, mat_global, para_env)
 
       TYPE(tensor_type)                                     :: tensor
       TYPE(dbcsr_type)                                   :: mat_tensor, mat_global
       TYPE(mp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'local_dbt_to_global_mat'
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'local_tensor_to_global_mat'
 
       INTEGER                                            :: handle
 
@@ -126,7 +126,7 @@ CONTAINS
 
       CALL timestop(handle)
 
-   END SUBROUTINE local_dbt_to_global_mat
+   END SUBROUTINE local_tensor_to_global_mat
 
 ! **************************************************************************************************
 !> \brief ...
@@ -911,13 +911,13 @@ CONTAINS
 !> \param mat_local ...
 !> \param bs_env ...
 ! **************************************************************************************************
-   SUBROUTINE local_dbt_to_global_fm(t_R, fm_R, mat_global, mat_local, bs_env)
+   SUBROUTINE local_tensor_to_global_fm(t_R, fm_R, mat_global, mat_local, bs_env)
       TYPE(tensor_type), DIMENSION(:)                       :: t_R
       TYPE(cp_fm_type), DIMENSION(:)                     :: fm_R
       TYPE(dbcsr_p_type)                                 :: mat_global, mat_local
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'local_dbt_to_global_fm'
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'local_tensor_to_global_fm'
 
       INTEGER                                            :: handle, i_cell, n_images
 
@@ -930,13 +930,13 @@ CONTAINS
       DO i_cell = 1, n_images
          CALL dbcsr_set(mat_global%matrix, 0.0_dp)
          CALL dbcsr_set(mat_local%matrix, 0.0_dp)
-         CALL local_dbt_to_global_mat(t_R(i_cell), mat_local%matrix, mat_global%matrix, &
+         CALL local_tensor_to_global_mat(t_R(i_cell), mat_local%matrix, mat_global%matrix, &
                                       bs_env%para_env)
          CALL copy_dbcsr_to_fm(mat_global%matrix, fm_R(i_cell))
       END DO
 
       CALL timestop(handle)
 
-   END SUBROUTINE local_dbt_to_global_fm
+   END SUBROUTINE local_tensor_to_global_fm
 
 END MODULE gw_communication
