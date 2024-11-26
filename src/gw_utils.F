@@ -55,10 +55,11 @@ MODULE gw_utils
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_type
    USE cp_output_handling,              ONLY: cp_print_key_generate_filename
-   USE dbt_api,                         ONLY: &
-        dbt_clear, dbt_create, dbt_destroy, dbt_filter, dbt_iterator_blocks_left, &
-        dbt_iterator_next_block, dbt_iterator_start, dbt_iterator_stop, dbt_iterator_type, &
-        dbt_mp_environ_pgrid, dbt_pgrid_create, dbt_pgrid_destroy, dbt_pgrid_type, dbt_type
+   USE tensor_api,                         ONLY: &
+        tensor_clear, tensor_create, tensor_destroy, tensor_filter, tensor_iterator_blocks_left, &
+        tensor_iterator_next_block, tensor_iterator_start, tensor_iterator_stop, tensor_iterator_type, &
+        tensor_mp_environ_pgrid, tensor_pgrid_create, tensor_pgrid_destroy, tensor_pgrid_type, tensor_type
+
    USE distribution_2d_types,           ONLY: distribution_2d_type
    USE gw_communication,                ONLY: fm_to_local_array
    USE gw_integrals,                    ONLY: build_3c_integral_block
@@ -786,8 +787,8 @@ CONTAINS
       INTEGER(int_8)                                     :: mem, non_zero_elements_sum, nze
       REAL(dp)                                           :: max_dist_AO_atoms, occ, occupation_sum
       REAL(KIND=dp)                                      :: t1, t2
-      TYPE(dbt_type)                                     :: t_3c_global
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_global_array
+      TYPE(tensor_type)                                     :: t_3c_global
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_global_array
       TYPE(neighbor_list_3c_type)                        :: nl_3c_global
 
       CALL timeset(routineN, handle)
@@ -802,7 +803,7 @@ CONTAINS
       CALL bs_env%para_env%max(mem)
 
       ALLOCATE (t_3c_global_array(1, 1))
-      CALL dbt_create(t_3c_global, t_3c_global_array(1, 1))
+      CALL tensor_create(t_3c_global, t_3c_global_array(1, 1))
 
       CALL bs_env%para_env%sync()
       t1 = m_walltime()
@@ -826,7 +827,7 @@ CONTAINS
                                  potential_parameter=bs_env%ri_metric, &
                                  desymmetrize=.FALSE.)
 
-         CALL dbt_filter(t_3c_global_array(1, 1), bs_env%eps_filter)
+         CALL tensor_filter(t_3c_global_array(1, 1), bs_env%eps_filter)
 
          CALL bs_env%para_env%sync()
 
@@ -836,7 +837,7 @@ CONTAINS
 
          CALL get_max_dist_AO_atoms(t_3c_global_array(1, 1), max_dist_AO_atoms, qs_env)
 
-         CALL dbt_clear(t_3c_global_array(1, 1))
+         CALL tensor_clear(t_3c_global_array(1, 1))
 
       END DO
 
@@ -845,8 +846,8 @@ CONTAINS
       bs_env%occupation_3c_int = occupation_sum
       bs_env%max_dist_AO_atoms = max_dist_AO_atoms
 
-      CALL dbt_destroy(t_3c_global)
-      CALL dbt_destroy(t_3c_global_array(1, 1))
+      CALL tensor_destroy(t_3c_global)
+      CALL tensor_destroy(t_3c_global_array(1, 1))
       DEALLOCATE (t_3c_global_array)
 
       CALL neighbor_list_3c_destroy(nl_3c_global)
@@ -882,14 +883,14 @@ CONTAINS
       INTEGER                                            :: handle
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: dist_1, dist_2
       INTEGER, DIMENSION(2)                              :: pdims_2d
-      TYPE(dbt_pgrid_type)                               :: pgrid_2d
+      TYPE(tensor_pgrid_type)                               :: pgrid_2d
 
       CALL timeset(routineN, handle)
 
       ! inspired from rpa_im_time.F / hfx_types.F
 
       pdims_2d = 0
-      CALL dbt_pgrid_create(bs_env%para_env_tensor, pdims_2d, pgrid_2d)
+      CALL tensor_pgrid_create(bs_env%para_env_tensor, pdims_2d, pgrid_2d)
 
       CALL create_2c_tensor(bs_env%t_G, dist_1, dist_2, pgrid_2d, sizes_AO, sizes_AO, &
                             name="(AO | AO)")
@@ -900,7 +901,7 @@ CONTAINS
       CALL create_2c_tensor(bs_env%t_W, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
                             name="(RI | RI)")
       DEALLOCATE (dist_1, dist_2)
-      CALL dbt_pgrid_destroy(pgrid_2d)
+      CALL tensor_pgrid_destroy(pgrid_2d)
 
       CALL timestop(handle)
 
@@ -921,7 +922,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_3c_t(tensor, para_env, tensor_name, map1, map2, sizes_RI, sizes_AO, &
                           create_nl_3c, nl_3c, qs_env)
-      TYPE(dbt_type)                                     :: tensor
+      TYPE(tensor_type)                                     :: tensor
       TYPE(mp_para_env_type), POINTER                    :: para_env
       CHARACTER(LEN=12)                                  :: tensor_name
       INTEGER, DIMENSION(:)                              :: map1, map2
@@ -936,7 +937,7 @@ CONTAINS
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: dist_AO_1, dist_AO_2, dist_RI
       INTEGER, DIMENSION(3)                              :: pcoord, pdims, pdims_3d
       LOGICAL                                            :: my_create_nl_3c
-      TYPE(dbt_pgrid_type)                               :: pgrid_3d
+      TYPE(tensor_pgrid_type)                               :: pgrid_3d
       TYPE(distribution_3d_type)                         :: dist_3d
       TYPE(mp_cart_type)                                 :: mp_comm_t3c_2
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
@@ -944,7 +945,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       pdims_3d = 0
-      CALL dbt_pgrid_create(para_env, pdims_3d, pgrid_3d)
+      CALL tensor_pgrid_create(para_env, pdims_3d, pgrid_3d)
       CALL create_3c_tensor(tensor, dist_RI, dist_AO_1, dist_AO_2, &
                             pgrid_3d, sizes_RI, sizes_AO, sizes_AO, &
                             map1=map1, map2=map2, name=tensor_name)
@@ -957,8 +958,8 @@ CONTAINS
 
       IF (my_create_nl_3c) THEN
          CALL get_qs_env(qs_env, nkind=nkind, particle_set=particle_set)
-         CALL dbt_mp_environ_pgrid(pgrid_3d, pdims, pcoord)
-         CALL mp_comm_t3c_2%create(pgrid_3d%mp_comm_2d, 3, pdims)
+         CALL tensor_mp_environ_pgrid(pgrid_3d, pdims, pcoord)
+         CALL mp_comm_t3c_2%create(pgrid_3d%grid%mp_comm_2d, 3, pdims)
          CALL distribution_3d_create(dist_3d, dist_RI, dist_AO_1, dist_AO_2, &
                                      nkind, particle_set, mp_comm_t3c_2, own_comm=.TRUE.)
 
@@ -971,7 +972,7 @@ CONTAINS
       END IF
 
       DEALLOCATE (dist_RI, dist_AO_1, dist_AO_2)
-      CALL dbt_pgrid_destroy(pgrid_3d)
+      CALL tensor_pgrid_destroy(pgrid_3d)
 
       CALL timestop(handle)
 
@@ -1012,7 +1013,7 @@ CONTAINS
 !> \param qs_env ...
 ! **************************************************************************************************
    SUBROUTINE get_max_dist_AO_atoms(t_3c_int, max_dist_AO_atoms, qs_env)
-      TYPE(dbt_type)                                     :: t_3c_int
+      TYPE(tensor_type)                                     :: t_3c_int
       REAL(KIND=dp)                                      :: max_dist_AO_atoms
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
@@ -1024,7 +1025,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: abs_rab
       REAL(KIND=dp), DIMENSION(3)                        :: rab
       TYPE(cell_type), POINTER                           :: cell
-      TYPE(dbt_iterator_type)                            :: iter
+      TYPE(tensor_iterator_type)                            :: iter
       TYPE(mp_para_env_type), POINTER                    :: para_env
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
 
@@ -1036,9 +1037,9 @@ CONTAINS
 !$OMP PARALLEL DEFAULT(NONE) &
 !$OMP SHARED(t_3c_int, max_dist_AO_atoms, num_cells, index_to_cell, particle_set, cell) &
 !$OMP PRIVATE(iter,atom_ind,rab, abs_rab, atom_1, atom_2)
-      CALL dbt_iterator_start(iter, t_3c_int)
-      DO WHILE (dbt_iterator_blocks_left(iter))
-         CALL dbt_iterator_next_block(iter, atom_ind)
+      CALL tensor_iterator_start(iter, t_3c_int)
+      DO WHILE (tensor_iterator_blocks_left(iter))
+         CALL tensor_iterator_next_block(iter, atom_ind)
 
          atom_1 = atom_ind(2)
          atom_2 = atom_ind(3)
@@ -1050,7 +1051,7 @@ CONTAINS
          max_dist_AO_atoms = MAX(max_dist_AO_atoms, abs_rab)
 
       END DO
-      CALL dbt_iterator_stop(iter)
+      CALL tensor_iterator_stop(iter)
 !$OMP END PARALLEL
 
       CALL para_env%max(max_dist_AO_atoms)
@@ -2179,7 +2180,7 @@ CONTAINS
       ALLOCATE (bs_env%t_3c_int(nimages_3c, nimages_3c))
       DO j_cell = 1, nimages_3c
          DO k_cell = 1, nimages_3c
-            CALL dbt_create(bs_env%t_RI_AO__AO, bs_env%t_3c_int(j_cell, k_cell))
+            CALL tensor_create(bs_env%t_RI_AO__AO, bs_env%t_3c_int(j_cell, k_cell))
          END DO
       END DO
 

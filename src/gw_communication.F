@@ -19,14 +19,14 @@ MODULE gw_communication
    USE cp_dbcsr_operations,             ONLY: copy_dbcsr_to_fm,&
                                               copy_fm_to_dbcsr
    USE cp_fm_types,                     ONLY: cp_fm_get_info,&
-                                              cp_fm_type
-   USE dbt_api,                         ONLY: dbt_clear,&
-                                              dbt_copy,&
-                                              dbt_copy_matrix_to_tensor,&
-                                              dbt_copy_tensor_to_matrix,&
-                                              dbt_create,&
-                                              dbt_destroy,&
-                                              dbt_type
+                                              cp_fm_type 
+   USE tensor_api,                       ONLY: tensor_clear,&
+                                              tensor_copy,&
+                                              tensor_copy_matrix_to_tensor,&
+                                              tensor_copy_tensor_to_matrix,&
+                                              tensor_create,&
+                                              tensor_destroy,&
+                                              tensor_type
    USE kinds,                           ONLY: dp
    USE message_passing,                 ONLY: mp_para_env_type,&
                                               mp_request_type,&
@@ -66,18 +66,18 @@ CONTAINS
 
       TYPE(cp_fm_type)                                   :: fm_global
       TYPE(dbcsr_type)                                   :: mat_global, mat_local
-      TYPE(dbt_type)                                     :: tensor
+      TYPE(tensor_type)                                     :: tensor
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER, DIMENSION(:, :), OPTIONAL                 :: atom_ranges
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'fm_to_local_tensor'
 
       INTEGER                                            :: handle
-      TYPE(dbt_type)                                     :: tensor_tmp
+      TYPE(tensor_type)                                     :: tensor_tmp
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_clear(tensor)
+      CALL tensor_clear(tensor)
       CALL copy_fm_to_dbcsr(fm_global, mat_global, keep_sparsity=.FALSE.)
       CALL dbcsr_filter(mat_global, bs_env%eps_filter)
       IF (PRESENT(atom_ranges)) THEN
@@ -87,10 +87,10 @@ CONTAINS
          CALL global_matrix_to_local_matrix(mat_global, mat_local, bs_env%para_env, &
                                             bs_env%para_env_tensor%num_pe)
       END IF
-      CALL dbt_create(mat_local, tensor_tmp)
-      CALL dbt_copy_matrix_to_tensor(mat_local, tensor_tmp)
-      CALL dbt_copy(tensor_tmp, tensor, move_data=.TRUE.)
-      CALL dbt_destroy(tensor_tmp)
+      CALL tensor_create(mat_local, tensor_tmp)
+      CALL tensor_copy_matrix_to_tensor(mat_local, tensor_tmp)
+      CALL tensor_copy(tensor_tmp, tensor, move_data=.TRUE.)
+      CALL tensor_destroy(tensor_tmp)
       CALL dbcsr_set(mat_local, 0.0_dp)
       CALL dbcsr_filter(mat_local, 1.0_dp)
 
@@ -107,7 +107,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE local_dbt_to_global_mat(tensor, mat_tensor, mat_global, para_env)
 
-      TYPE(dbt_type)                                     :: tensor
+      TYPE(tensor_type)                                     :: tensor
       TYPE(dbcsr_type)                                   :: mat_tensor, mat_global
       TYPE(mp_para_env_type), POINTER                    :: para_env
 
@@ -117,8 +117,8 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_copy_tensor_to_matrix(tensor, mat_tensor)
-      CALL dbt_clear(tensor)
+      CALL tensor_copy_tensor_to_matrix(tensor, mat_tensor)
+      CALL tensor_clear(tensor)
       ! the next para_env%sync is not mandatory, but it makes the timing output
       ! of local_matrix_to_global_matrix correct
       CALL para_env%sync()
@@ -912,7 +912,7 @@ CONTAINS
 !> \param bs_env ...
 ! **************************************************************************************************
    SUBROUTINE local_dbt_to_global_fm(t_R, fm_R, mat_global, mat_local, bs_env)
-      TYPE(dbt_type), DIMENSION(:)                       :: t_R
+      TYPE(tensor_type), DIMENSION(:)                       :: t_R
       TYPE(cp_fm_type), DIMENSION(:)                     :: fm_R
       TYPE(dbcsr_p_type)                                 :: mat_global, mat_local
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env

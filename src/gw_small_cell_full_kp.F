@@ -23,18 +23,18 @@ MODULE gw_small_cell_full_kp
                                               cp_fm_set_all,&
                                               cp_fm_type
    USE tensor_api,                      ONLY: tensor_type,&
-                                              tensor_clear
-                                              !tensor_contract,&
-                                              !tensor_copy,&
-                                              !tensor_create,&
-                                              !tensor_destroy
-   USE dbt_api,                         ONLY: dbt_clear,&
+                                              tensor_clear,&
+                                              tensor_contract,&
+                                              tensor_copy,&
+                                              tensor_create,&
+                                              tensor_destroy
+   USE dbt_api,                         ONLY: dbt_create,&
                                               dbt_contract,&
                                               dbt_copy,&
                                               dbt_create,&
                                               dbt_destroy,&
                                               dbt_type
-   USE gw_communication,                ONLY: fm_to_local_array,&
+   USE gw_communication,         ONLY: fm_to_local_array,&
                                               fm_to_local_tensor,&
                                               local_array_to_fm,&
                                               local_dbt_to_global_fm
@@ -133,18 +133,18 @@ CONTAINS
                                                             ispin
       LOGICAL                                            :: cell_found
       REAL(KIND=dp)                                      :: t1, tau
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: Gocc_S, Gvir_S, t_chi_R
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_Gocc, t_Gvir
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: Gocc_S, Gvir_S, t_chi_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_Gocc, t_Gvir
 
       CALL timeset(routineN, handle)
 
       DO i_t = 1, bs_env%num_time_freq_points
 
-         CALL dbt_create_2c_R(Gocc_S, bs_env%t_G, bs_env%nimages_scf_desymm)
-         CALL dbt_create_2c_R(Gvir_S, bs_env%t_G, bs_env%nimages_scf_desymm)
-         CALL dbt_create_2c_R(t_chi_R, bs_env%t_chi, bs_env%nimages_scf_desymm)
-         CALL dbt_create_3c_R1_R2(t_Gocc, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
-         CALL dbt_create_3c_R1_R2(t_Gvir, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
+         CALL tensor_create_2c_R(Gocc_S, bs_env%t_G, bs_env%nimages_scf_desymm)
+         CALL tensor_create_2c_R(Gvir_S, bs_env%t_G, bs_env%nimages_scf_desymm)
+         CALL tensor_create_2c_R(t_chi_R, bs_env%t_chi, bs_env%nimages_scf_desymm)
+         CALL tensor_create_3c_R1_R2(t_Gocc, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
+         CALL tensor_create_3c_R1_R2(t_Gvir, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
 
          t1 = m_walltime()
          tau = bs_env%imag_time_points(i_t)
@@ -218,13 +218,13 @@ CONTAINS
 !> \param template ...
 !> \param nimages ...
 ! **************************************************************************************************
-   SUBROUTINE dbt_create_2c_R(R, template, nimages)
+   SUBROUTINE tensor_create_2c_R(R, template, nimages)
 
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: R
-      TYPE(dbt_type)                                     :: template
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: R
+      TYPE(tensor_type)                                     :: template
       INTEGER                                            :: nimages
 
-      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'dbt_create_2c_R'
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'tensor_create_2c_R'
 
       INTEGER                                            :: handle, i_cell_S
 
@@ -232,12 +232,12 @@ CONTAINS
 
       ALLOCATE (R(nimages))
       DO i_cell_S = 1, nimages
-         CALL dbt_create(template, R(i_cell_S))
+         CALL tensor_create(template, R(i_cell_S))
       END DO
 
       CALL timestop(handle)
 
-   END SUBROUTINE dbt_create_2c_R
+   END SUBROUTINE tensor_create_2c_R
 
 ! **************************************************************************************************
 !> \brief ...
@@ -246,13 +246,13 @@ CONTAINS
 !> \param nimages_1 ...
 !> \param nimages_2 ...
 ! **************************************************************************************************
-   SUBROUTINE dbt_create_3c_R1_R2(t_3c_R1_R2, t_3c_template, nimages_1, nimages_2)
+   SUBROUTINE tensor_create_3c_R1_R2(t_3c_R1_R2, t_3c_template, nimages_1, nimages_2)
 
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_R1_R2
-      TYPE(dbt_type)                                     :: t_3c_template
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_3c_R1_R2
+      TYPE(tensor_type)                                     :: t_3c_template
       INTEGER                                            :: nimages_1, nimages_2
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dbt_create_3c_R1_R2'
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'tensor_create_3c_R1_R2'
 
       INTEGER                                            :: handle, i_cell, j_cell
 
@@ -261,13 +261,13 @@ CONTAINS
       ALLOCATE (t_3c_R1_R2(nimages_1, nimages_2))
       DO i_cell = 1, nimages_1
          DO j_cell = 1, nimages_2
-            CALL dbt_create(t_3c_template, t_3c_R1_R2(i_cell, j_cell))
+            CALL tensor_create(t_3c_template, t_3c_R1_R2(i_cell, j_cell))
          END DO
       END DO
 
       CALL timestop(handle)
 
-   END SUBROUTINE dbt_create_3c_R1_R2
+   END SUBROUTINE tensor_create_3c_R1_R2
 
 ! **************************************************************************************************
 !> \brief ...
@@ -278,8 +278,8 @@ CONTAINS
 !> \param i_cell_R2 ...
 ! **************************************************************************************************
    SUBROUTINE G_times_3c(t_G_S, t_M, bs_env, i_cell_R1, i_cell_R2)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: t_G_S
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_M
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: t_G_S
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_M
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER                                            :: i_cell_R1, i_cell_R2
 
@@ -289,11 +289,11 @@ CONTAINS
       INTEGER, DIMENSION(3)                              :: cell_R1, cell_R1_plus_cell_S, cell_R2, &
                                                             cell_S
       LOGICAL                                            :: cell_found
-      TYPE(dbt_type)                                     :: t_3c_int
+      TYPE(tensor_type)                                     :: t_3c_int
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_int)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_int)
 
       cell_R1(1:3) = bs_env%index_to_cell_3c(i_cell_R1, 1:3)
       cell_R2(1:3) = bs_env%index_to_cell_3c(i_cell_R2, 1:3)
@@ -314,7 +314,7 @@ CONTAINS
 
          CALL get_t_3c_int(t_3c_int, bs_env, i_cell_R2, i_cell_R1_p_S)
 
-         CALL dbt_contract(alpha=1.0_dp, &
+         CALL tensor_contract(alpha=1.0_dp, &
                            tensor_1=t_3c_int, &
                            tensor_2=t_G_S(i_cell_S), &
                            beta=1.0_dp, &
@@ -324,7 +324,7 @@ CONTAINS
                            filter_eps=bs_env%eps_filter)
       END DO
 
-      CALL dbt_destroy(t_3c_int)
+      CALL tensor_destroy(t_3c_int)
 
       CALL timestop(handle)
 
@@ -339,7 +339,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE get_t_3c_int(t_3c_int, bs_env, j_cell, k_cell)
 
-      TYPE(dbt_type)                                     :: t_3c_int
+      TYPE(tensor_type)                                     :: t_3c_int
 !      TYPE(tensor_type)                                     :: t_3c_int
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER                                            :: j_cell, k_cell
@@ -350,12 +350,12 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_clear(t_3c_int)
+      CALL tensor_create(t_3c_int)
 !      CALL tensor_clear(t_3c_int)
       IF (j_cell < k_cell) THEN
-         CALL dbt_copy(bs_env%t_3c_int(k_cell, j_cell), t_3c_int, order=[1, 3, 2])
+         CALL tensor_copy(bs_env%t_3c_int(k_cell, j_cell), t_3c_int, order=[1, 3, 2])
       ELSE
-         CALL dbt_copy(bs_env%t_3c_int(j_cell, k_cell), t_3c_int)
+         CALL tensor_copy(bs_env%t_3c_int(j_cell, k_cell), t_3c_int)
       END IF
 
       CALL timestop(handle)
@@ -374,7 +374,7 @@ CONTAINS
    SUBROUTINE G_occ_vir(bs_env, tau, G_S, ispin, occ, vir)
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       REAL(KIND=dp)                                      :: tau
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: G_S
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: G_S
       INTEGER                                            :: ispin
       LOGICAL                                            :: occ, vir
 
@@ -458,8 +458,8 @@ CONTAINS
 !> \param i_cell_Delta_R ...
 ! **************************************************************************************************
    SUBROUTINE contract_M_occ_vir_to_chi(t_Gocc, t_Gvir, t_chi_R, bs_env, i_cell_Delta_R)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_Gocc, t_Gvir
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: t_chi_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_Gocc, t_Gvir
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: t_chi_R
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER                                            :: i_cell_Delta_R
 
@@ -472,12 +472,12 @@ CONTAINS
                                                             cell_R1_minus_R, cell_R2, &
                                                             cell_R2_minus_R
       LOGICAL                                            :: cell_found
-      TYPE(dbt_type)                                     :: t_Gocc_2, t_Gvir_2
+      TYPE(tensor_type)                                     :: t_Gocc_2, t_Gvir_2
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_Gocc_2)
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_Gvir_2)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_Gocc_2)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_Gvir_2)
 
       ! χ_PQ^R(iτ) = sum_λR1,νR2 M^occ_λR1,νR2,P0 M^vir_νR2,λR1,QR
       DO i_cell_R = 1, bs_env%nimages_scf_desymm
@@ -504,11 +504,11 @@ CONTAINS
             IF (.NOT. cell_found) CYCLE
 
             ! reorder tensors for efficient contraction to χ_PQ^R
-            CALL dbt_copy(t_Gocc(i_cell_R1, i_cell_R2), t_Gocc_2, order=[1, 3, 2])
-            CALL dbt_copy(t_Gvir(i_cell_R2_minus_R, i_cell_R1_minus_R), t_Gvir_2)
+            CALL tensor_copy(t_Gocc(i_cell_R1, i_cell_R2), t_Gocc_2, order=[1, 3, 2])
+            CALL tensor_copy(t_Gvir(i_cell_R2_minus_R, i_cell_R1_minus_R), t_Gvir_2)
 
             ! χ_PQ^R(iτ) = sum_λR1,νR2 M^occ_λR1,νR2,P0 M^vir_νR2,λR1,QR
-            CALL dbt_contract(alpha=bs_env%spin_degeneracy, &
+            CALL tensor_contract(alpha=bs_env%spin_degeneracy, &
                               tensor_1=t_Gocc_2, tensor_2=t_Gvir_2, &
                               beta=1.0_dp, tensor_3=t_chi_R(i_cell_R), &
                               contract_1=[2, 3], notcontract_1=[1], map_1=[1], &
@@ -521,13 +521,13 @@ CONTAINS
       ! remove all data from t_Gocc and t_Gvir to safe memory
       DO i_cell_R1 = 1, bs_env%nimages_3c
          DO i_cell_R2 = 1, bs_env%nimages_3c
-            CALL dbt_clear(t_Gocc(i_cell_R1, i_cell_R2))
-            CALL dbt_clear(t_Gvir(i_cell_R1, i_cell_R2))
+            CALL tensor_create(t_Gocc(i_cell_R1, i_cell_R2))
+            CALL tensor_create(t_Gvir(i_cell_R1, i_cell_R2))
          END DO
       END DO
 
-      CALL dbt_destroy(t_Gocc_2)
-      CALL dbt_destroy(t_Gvir_2)
+      CALL tensor_destroy(t_Gocc_2)
+      CALL tensor_destroy(t_Gvir_2)
 
       CALL timestop(handle)
 
@@ -850,15 +850,15 @@ CONTAINS
       INTEGER                                            :: handle, i_cell_Delta_R, &
                                                             i_task_Delta_R_local, ispin
       REAL(KIND=dp)                                      :: t1
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: D_S, Mi_Vtr_Mi_R, Sigma_x_R
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_V
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: D_S, Mi_Vtr_Mi_R, Sigma_x_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_V
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create_2c_R(Mi_Vtr_Mi_R, bs_env%t_W, bs_env%nimages_scf_desymm)
-      CALL dbt_create_2c_R(D_S, bs_env%t_G, bs_env%nimages_scf_desymm)
-      CALL dbt_create_2c_R(Sigma_x_R, bs_env%t_G, bs_env%nimages_scf_desymm)
-      CALL dbt_create_3c_R1_R2(t_V, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
+      CALL tensor_create_2c_R(Mi_Vtr_Mi_R, bs_env%t_W, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(D_S, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(Sigma_x_R, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_3c_R1_R2(t_V, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
 
       t1 = m_walltime()
 
@@ -925,18 +925,18 @@ CONTAINS
       INTEGER                                            :: handle, i_cell_Delta_R, i_t, &
                                                             i_task_Delta_R_local, ispin
       REAL(KIND=dp)                                      :: t1, tau
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: Gocc_S, Gvir_S, Sigma_c_R_neg_tau, &
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: Gocc_S, Gvir_S, Sigma_c_R_neg_tau, &
                                                             Sigma_c_R_pos_tau, W_R
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create_2c_R(Gocc_S, bs_env%t_G, bs_env%nimages_scf_desymm)
-      CALL dbt_create_2c_R(Gvir_S, bs_env%t_G, bs_env%nimages_scf_desymm)
-      CALL dbt_create_2c_R(W_R, bs_env%t_W, bs_env%nimages_scf_desymm)
-      CALL dbt_create_3c_R1_R2(t_W, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
-      CALL dbt_create_2c_R(Sigma_c_R_neg_tau, bs_env%t_G, bs_env%nimages_scf_desymm)
-      CALL dbt_create_2c_R(Sigma_c_R_pos_tau, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(Gocc_S, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(Gvir_S, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(W_R, bs_env%t_W, bs_env%nimages_scf_desymm)
+      CALL tensor_create_3c_R1_R2(t_W, bs_env%t_RI_AO__AO, bs_env%nimages_3c, bs_env%nimages_3c)
+      CALL tensor_create_2c_R(Sigma_c_R_neg_tau, bs_env%t_G, bs_env%nimages_scf_desymm)
+      CALL tensor_create_2c_R(Sigma_c_R_pos_tau, bs_env%t_G, bs_env%nimages_scf_desymm)
 
       ! Σ^c_λσ^R(iτ) = sum_PR1νS1 [ sum_µS2 (λ0 µS1-S2 | PR1   ) G^occ/vir_µν^S2(i|τ|) ]
       !                           [ sum_QR2 (σR νS1    | QR1-R2) Ŵ_PQ^R2(iτ)           ]
@@ -1017,7 +1017,7 @@ CONTAINS
 !> \param qs_env ...
 ! **************************************************************************************************
    SUBROUTINE get_Minv_Vtr_Minv_R(Mi_Vtr_Mi_R, bs_env, qs_env)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: Mi_Vtr_Mi_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: Mi_Vtr_Mi_R
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
@@ -1083,7 +1083,7 @@ CONTAINS
 !> \param t_1d ...
 ! **************************************************************************************************
    SUBROUTINE destroy_t_1d(t_1d)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: t_1d
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: t_1d
 
       CHARACTER(LEN=*), PARAMETER                        :: routineN = 'destroy_t_1d'
 
@@ -1092,7 +1092,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       DO i = 1, SIZE(t_1d)
-         CALL dbt_destroy(t_1d(i))
+         CALL tensor_destroy(t_1d(i))
       END DO
       DEALLOCATE (t_1d)
 
@@ -1105,7 +1105,7 @@ CONTAINS
 !> \param t_2d ...
 ! **************************************************************************************************
    SUBROUTINE destroy_t_2d(t_2d)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_2d
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_2d
 
       CHARACTER(LEN=*), PARAMETER                        :: routineN = 'destroy_t_2d'
 
@@ -1115,7 +1115,7 @@ CONTAINS
 
       DO i = 1, SIZE(t_2d, 1)
       DO j = 1, SIZE(t_2d, 2)
-         CALL dbt_destroy(t_2d(i, j))
+         CALL tensor_destroy(t_2d(i, j))
       END DO
       END DO
       DEALLOCATE (t_2d)
@@ -1132,8 +1132,8 @@ CONTAINS
 !> \param i_cell_Delta_R ...
 ! **************************************************************************************************
    SUBROUTINE contract_W(t_W, W_R, bs_env, i_cell_Delta_R)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: W_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: W_R
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       INTEGER                                            :: i_cell_Delta_R
 
@@ -1145,12 +1145,12 @@ CONTAINS
       INTEGER, DIMENSION(3)                              :: cell_DR, cell_R1, cell_R2, cell_R2_m_R1, &
                                                             cell_S1, cell_S1_m_R2_p_R1
       LOGICAL                                            :: cell_found
-      TYPE(dbt_type)                                     :: t_3c_int, t_W_tmp
+      TYPE(tensor_type)                                     :: t_3c_int, t_W_tmp
 
       CALL timeset(routineN, handle)
 
-      CALL dbt_create(bs_env%t_RI__AO_AO, t_W_tmp)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_int)
+      CALL tensor_create(bs_env%t_RI__AO_AO, t_W_tmp)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_int)
 
       DO i_cell_R1 = 1, bs_env%nimages_3c
 
@@ -1181,7 +1181,7 @@ CONTAINS
             ! M^W_σ0,νS1,PR1 = sum_QR2 ( σ0     νS1       | QR1-R2 ) W_QP^R2
             !                = sum_QR2 ( σR2-R1 νS1-R1+R2 | Q0     ) W_QP^R2
             ! for ΔR = S_1 - R_1
-            CALL dbt_contract(alpha=1.0_dp, &
+            CALL tensor_contract(alpha=1.0_dp, &
                               tensor_1=W_R(i_cell_R2), &
                               tensor_2=t_3c_int, &
                               beta=0.0_dp, &
@@ -1191,15 +1191,15 @@ CONTAINS
                               filter_eps=bs_env%eps_filter)
 
             ! reorder tensor
-            CALL dbt_copy(t_W_tmp, t_W(i_cell_S1, i_cell_R1), order=[1, 2, 3], &
+            CALL tensor_copy(t_W_tmp, t_W(i_cell_S1, i_cell_R1), order=[1, 2, 3], &
                           move_data=.TRUE., summation=.TRUE.)
 
          END DO ! i_cell_R2
 
       END DO ! i_cell_R1
 
-      CALL dbt_destroy(t_W_tmp)
-      CALL dbt_destroy(t_3c_int)
+      CALL tensor_destroy(t_W_tmp)
+      CALL tensor_destroy(t_3c_int)
 
       CALL timestop(handle)
 
@@ -1217,9 +1217,9 @@ CONTAINS
 !> \param clear_t_W ...
 ! **************************************************************************************************
    SUBROUTINE contract_to_Sigma(Sigma_R, t_W, G_S, i_cell_Delta_R, bs_env, occ, vir, clear_t_W)
-      TYPE(dbt_type), DIMENSION(:)                       :: Sigma_R
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
-      TYPE(dbt_type), DIMENSION(:)                       :: G_S
+      TYPE(tensor_type), DIMENSION(:)                       :: Sigma_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_W
+      TYPE(tensor_type), DIMENSION(:)                       :: G_S
       INTEGER                                            :: i_cell_Delta_R
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
       LOGICAL                                            :: occ, vir, clear_t_W
@@ -1234,7 +1234,7 @@ CONTAINS
                                                             cell_S2
       LOGICAL                                            :: cell_found
       REAL(KIND=dp)                                      :: sign_Sigma
-      TYPE(dbt_type)                                     :: t_3c_int, t_G, t_G_2
+      TYPE(tensor_type)                                     :: t_3c_int, t_G, t_G_2
 
       CALL timeset(routineN, handle)
 
@@ -1242,9 +1242,9 @@ CONTAINS
       IF (occ) sign_Sigma = -1.0_dp
       IF (vir) sign_Sigma = 1.0_dp
 
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_G)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_G_2)
-      CALL dbt_create(bs_env%t_RI_AO__AO, t_3c_int)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_G)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_G_2)
+      CALL tensor_create(bs_env%t_RI_AO__AO, t_3c_int)
 
       DO i_cell_R1 = 1, bs_env%nimages_3c
 
@@ -1280,7 +1280,7 @@ CONTAINS
             ! M_λ0,νS1,PR1 = sum_µS2 ( λ0   µS1-S2    | PR1 ) G^occ/vir_µν^S2(i|τ|)
             !              = sum_µS2 ( λ-R1 µS1-S2-R1 | P0  ) G^occ/vir_µν^S2(i|τ|)
             ! for ΔR = S_1 - R_1
-            CALL dbt_contract(alpha=1.0_dp, &
+            CALL tensor_contract(alpha=1.0_dp, &
                               tensor_1=G_S(i_cell_S2), &
                               tensor_2=t_3c_int, &
                               beta=1.0_dp, &
@@ -1293,7 +1293,7 @@ CONTAINS
 
          END DO ! i_cell_S2
 
-         CALL dbt_copy(t_G, t_G_2, order=[1, 3, 2], move_data=.TRUE.)
+         CALL tensor_copy(t_G, t_G_2, order=[1, 3, 2], move_data=.TRUE.)
 
          CALL timeset(routineN//"_contract", handle2)
 
@@ -1314,7 +1314,7 @@ CONTAINS
             ! Σ_λσ^R = sum_PR1νS1 M^G_λ0,νS1,PR1 M^W_σR,νS1,PR1, where
             ! M^G_λ0,νS1,PR1 = sum_µS2 (λ0 µS1-S2 | PR1) G_µν^S2
             ! M^W_σR,νS1,PR1 = sum_QR2 (σR νS1 | QR1-R2) W_PQ^R2 = M^W_σ0,νS1-R,PR1-R
-            CALL dbt_contract(alpha=sign_Sigma, &
+            CALL tensor_contract(alpha=sign_Sigma, &
                               tensor_1=t_G_2, &
                               tensor_2=t_W(i_cell_S1_minus_R, i_cell_R1_minus_R), &
                               beta=1.0_dp, &
@@ -1325,7 +1325,7 @@ CONTAINS
 
          END DO ! i_cell_R
 
-         CALL dbt_clear(t_G_2)
+         CALL tensor_create(t_G_2)
 
          CALL timestop(handle2)
 
@@ -1335,14 +1335,14 @@ CONTAINS
       IF (clear_t_W) THEN
          DO i_cell_S1 = 1, bs_env%nimages_3c
             DO i_cell_R1 = 1, bs_env%nimages_3c
-               CALL dbt_clear(t_W(i_cell_S1, i_cell_R1))
+               CALL tensor_create(t_W(i_cell_S1, i_cell_R1))
             END DO
          END DO
       END IF
 
-      CALL dbt_destroy(t_G)
-      CALL dbt_destroy(t_G_2)
-      CALL dbt_destroy(t_3c_int)
+      CALL tensor_destroy(t_G)
+      CALL tensor_destroy(t_G_2)
+      CALL tensor_destroy(t_3c_int)
 
       CALL timestop(handle)
 
@@ -1356,7 +1356,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE fm_MWM_R_t_to_local_tensor_W_R(fm_W_R, W_R, bs_env)
       TYPE(cp_fm_type), DIMENSION(:)                     :: fm_W_R
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:)          :: W_R
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:)          :: W_R
       TYPE(post_scf_bandstructure_type), POINTER         :: bs_env
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'fm_MWM_R_t_to_local_tensor_W_R'

@@ -21,6 +21,8 @@ MODULE post_scf_bandstructure_types
                                               cp_fm_type
    USE dbt_api,                         ONLY: dbt_destroy,&
                                               dbt_type
+   USE tensor_api,                         ONLY: tensor_destroy,&
+                                              tensor_type
    USE input_constants,                 ONLY: small_cell_full_kp
    USE kinds,                           ONLY: default_string_length,&
                                               dp
@@ -175,7 +177,7 @@ MODULE post_scf_bandstructure_types
                                                       mat_RI_RI_tensor
 
       ! tensors for sparse matrix-tensor operations
-      TYPE(dbt_type)                               :: t_G, &
+      TYPE(tensor_type)                               :: t_G, &
                                                       t_chi, &
                                                       t_W, &
                                                       t_RI_AO__AO, &
@@ -286,7 +288,7 @@ MODULE post_scf_bandstructure_types
       TYPE(cp_fm_type), DIMENSION(:, :, :), ALLOCATABLE :: fm_Sigma_c_R_neg_tau, &
                                                            fm_Sigma_c_R_pos_tau
       REAL(KIND=dp), DIMENSION(:, :, :), ALLOCATABLE    :: v_xc_n
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)      :: t_3c_int
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)      :: t_3c_int
 
    END TYPE post_scf_bandstructure_type
 
@@ -392,11 +394,11 @@ CONTAINS
       CALL mp_para_env_release(bs_env%para_env)
       IF (ASSOCIATED(bs_env%para_env_tensor)) CALL mp_para_env_release(bs_env%para_env_tensor)
 
-      CALL safe_dbt_destroy(bs_env%t_G)
-      CALL safe_dbt_destroy(bs_env%t_chi)
-      CALL safe_dbt_destroy(bs_env%t_W)
-      CALL safe_dbt_destroy(bs_env%t_RI_AO__AO)
-      CALL safe_dbt_destroy(bs_env%t_RI__AO_AO)
+      CALL safe_tensor_destroy(bs_env%t_G)
+      CALL safe_tensor_destroy(bs_env%t_chi)
+      CALL safe_tensor_destroy(bs_env%t_W)
+      CALL safe_tensor_destroy(bs_env%t_RI_AO__AO)
+      CALL safe_tensor_destroy(bs_env%t_RI__AO_AO)
 
       IF (ALLOCATED(bs_env%basis_set_AO)) DEALLOCATE (bs_env%basis_set_AO)
       IF (ALLOCATED(bs_env%basis_set_RI)) DEALLOCATE (bs_env%basis_set_RI)
@@ -443,12 +445,12 @@ CONTAINS
 !> \brief ...
 !> \param t ...
 ! **************************************************************************************************
-   SUBROUTINE safe_dbt_destroy(t)
-      TYPE(dbt_type)                                     :: t
+   SUBROUTINE safe_tensor_destroy(t)
+      TYPE(tensor_type)                                     :: t
 
-      IF (ASSOCIATED(t%matrix_rep)) CALL dbt_destroy(t)
+      IF ((ASSOCIATED(t%dbt)) .or. (ASSOCIATED(t%fm_t))) CALL tensor_destroy(t)
 
-   END SUBROUTINE safe_dbt_destroy
+   END SUBROUTINE safe_tensor_destroy
 
 ! **************************************************************************************************
 !> \brief ...
@@ -575,14 +577,14 @@ CONTAINS
 !> \param t_2d ...
 ! **************************************************************************************************
    SUBROUTINE t_destroy_2d(t_2d)
-      TYPE(dbt_type), ALLOCATABLE, DIMENSION(:, :)       :: t_2d
+      TYPE(tensor_type), ALLOCATABLE, DIMENSION(:, :)       :: t_2d
 
       INTEGER                                            :: i, j
 
       IF (ALLOCATED(t_2d)) THEN
          DO i = 1, SIZE(t_2d, 1)
             DO j = 1, SIZE(t_2d, 2)
-               CALL dbt_destroy(t_2d(i, j))
+               CALL tensor_destroy(t_2d(i, j))
             END DO
          END DO
          DEALLOCATE (t_2d)
