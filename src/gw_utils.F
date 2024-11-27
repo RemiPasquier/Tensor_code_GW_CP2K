@@ -286,6 +286,7 @@ CONTAINS
       CALL section_vals_val_get(gw_sec, "MEMORY_PER_PROC", r_val=bs_env%input_memory_per_proc_GB)
       CALL section_vals_val_get(gw_sec, "APPROX_KP_EXTRAPOL", l_val=bs_env%approx_kp_extrapol)
       CALL section_vals_val_get(gw_sec, "HEDIN_SHIFT", l_val=bs_env%do_hedin_shift)
+      CALL section_vals_val_get(gw_sec, "FULL_MAT_TENSOR", i_val=bs_env%do_fmt)
 
       CALL timestop(handle)
 
@@ -766,9 +767,9 @@ CONTAINS
       ! with the standard atomic blocks
       CALL create_3c_t(bs_env%t_RI_AO__AO, bs_env%para_env_tensor, "(RI AO | AO)", [1, 2], [3], &
                        bs_env%sizes_RI, bs_env%sizes_AO, &
-                       create_nl_3c=.TRUE., nl_3c=bs_env%nl_3c, qs_env=qs_env)
+                       create_nl_3c=.TRUE., nl_3c=bs_env%nl_3c, qs_env=qs_env, mode=bs_env%do_fmt)
       CALL create_3c_t(bs_env%t_RI__AO_AO, bs_env%para_env_tensor, "(RI | AO AO)", [1], [2, 3], &
-                       bs_env%sizes_RI, bs_env%sizes_AO)
+                       bs_env%sizes_RI, bs_env%sizes_AO,mode=bs_env%do_fmt)
 
       CALL create_2c_t(bs_env, bs_env%sizes_RI, bs_env%sizes_AO)
 
@@ -801,7 +802,7 @@ CONTAINS
       ! AO atoms µ, ν where at least a single integral (µν|P) is larger than the filter threshold
       CALL create_3c_t(t_3c_global, bs_env%para_env, "(RI AO | AO)", [1, 2], [3], &
                        bs_env%sizes_RI, bs_env%sizes_AO, &
-                       create_nl_3c=.TRUE., nl_3c=nl_3c_global, qs_env=qs_env)
+                       create_nl_3c=.TRUE., nl_3c=nl_3c_global, qs_env=qs_env,mode=bs_env%do_fmt)
 
       CALL m_memory(mem)
       CALL bs_env%para_env%max(mem)
@@ -897,13 +898,13 @@ CONTAINS
       CALL tensor_pgrid_create(bs_env%t_G, bs_env%para_env_tensor, pdims_2d, pgrid_2d)
 
       CALL tensor_create_2c_tensor(bs_env%t_G, dist_1, dist_2, pgrid_2d, sizes_AO, sizes_AO, &
-                            name="(AO | AO)")
+                            name="(AO | AO)",mode=bs_env%do_fmt)
       DEALLOCATE (dist_1, dist_2)
       CALL tensor_create_2c_tensor(bs_env%t_chi, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
-                            name="(RI | RI)")
+                            name="(RI | RI)", mode=bs_env%do_fmt)
       DEALLOCATE (dist_1, dist_2)
       CALL tensor_create_2c_tensor(bs_env%t_W, dist_1, dist_2, pgrid_2d, sizes_RI, sizes_RI, &
-                            name="(RI | RI)")
+                            name="(RI | RI)",mode=bs_env%do_fmt)
       DEALLOCATE (dist_1, dist_2)
       CALL tensor_pgrid_destroy(bs_env%t_G,pgrid_2d)
 
@@ -925,7 +926,7 @@ CONTAINS
 !> \param qs_env ...
 ! **************************************************************************************************
    SUBROUTINE create_3c_t(tensor, para_env, tensor_name, map1, map2, sizes_RI, sizes_AO, &
-                          create_nl_3c, nl_3c, qs_env)
+                          create_nl_3c, nl_3c, qs_env,mode)
       TYPE(tensor_type)                                     :: tensor
       TYPE(mp_para_env_type), POINTER                    :: para_env
       CHARACTER(LEN=12)                                  :: tensor_name
@@ -934,10 +935,11 @@ CONTAINS
       LOGICAL, OPTIONAL                                  :: create_nl_3c
       TYPE(neighbor_list_3c_type), OPTIONAL              :: nl_3c
       TYPE(qs_environment_type), OPTIONAL, POINTER       :: qs_env
+      INTEGER, OPTIONAL                                  :: mode                                     
 
       CHARACTER(LEN=*), PARAMETER                        :: routineN = 'create_3c_t'
 
-      INTEGER                                            :: handle, nkind
+      INTEGER                                            :: handle, nkind,tensmode
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: dist_AO_1, dist_AO_2, dist_RI
       INTEGER, DIMENSION(3)                              :: pcoord, pdims, pdims_3d
       LOGICAL                                            :: my_create_nl_3c
@@ -949,10 +951,15 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       pdims_3d = 0
+      IF (PRESENT(mode)) THEN
+         tensmode=mode
+      ELSE
+         tensmode=1
+      END IF
       CALL tensor_pgrid_create(tensor,para_env, pdims_3d, pgrid_3d)
       CALL tensor_create_3c_tensor(tensor, dist_RI, dist_AO_1, dist_AO_2, &
                             pgrid_3d, sizes_RI, sizes_AO, sizes_AO, &
-                            map1=map1, map2=map2, name=tensor_name)
+                            map1=map1, map2=map2, name=tensor_name,mode=tensmode)
 
       IF (PRESENT(create_nl_3c)) THEN
          my_create_nl_3c = create_nl_3c

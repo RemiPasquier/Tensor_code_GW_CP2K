@@ -87,8 +87,8 @@ CONTAINS
          CALL global_matrix_to_local_matrix(mat_global, mat_local, bs_env%para_env, &
                                             bs_env%para_env_tensor%num_pe)
       END IF
-      CALL tensor_create(mat_local, tensor_tmp)
-      CALL tensor_copy_matrix_to_tensor(mat_local, tensor_tmp)
+      CALL tensor_create(mat_local, tensor_tmp, bs_env%do_fmt)
+      CALL tensor_copy_matrix_to_tensor(mat_local, tensor_tmp,mode=bs_env%do_fmt)
       CALL tensor_copy(tensor_tmp, tensor, move_data=.TRUE.)
       CALL tensor_destroy(tensor_tmp)
       CALL dbcsr_set(mat_local, 0.0_dp)

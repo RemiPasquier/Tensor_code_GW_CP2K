@@ -2129,6 +2129,16 @@ CONTAINS
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
+      CALL keyword_create(keyword, __LOCATION__, name="FULL_MAT_TENSOR", &
+                          description="Select the type of tensors used for GW calculations. " // &
+                          "If 2, use scalapack full matrices instead of "// &
+                          "dbt sparse tensors for the GW calculations.",&
+                          usage="FULL_MAT_TENSOR", &
+                          default_i_val=1)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+        
       NULLIFY (subsection, print_key)
       CALL section_create(subsection, __LOCATION__, name="PRINT", &
                           description="Printing of GW restarts.", &

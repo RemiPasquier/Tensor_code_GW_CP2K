@@ -111,7 +111,7 @@ CONTAINS
    SUBROUTINE tensor_create_template(tensor_t,tensor)
           TYPE(tensor_type), INTENT(INOUT) :: tensor_t,tensor
           !!CPASSERT(tensor_t%t_type==tensor%t_type)
-          SELECT CASE(tensor%t_type)
+          SELECT CASE(tensor_t%t_type)
           CASE (case_dbt)
                !CPASSERT(ALLOCATED(tensor_t%dbt))
                !CPASSERT(ALLOCATED(tensor%dbt))
@@ -121,12 +121,14 @@ CONTAINS
                !CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_create_low_template(tensor_t%fm_t,tensor%fm_t)
           END SELECT
+          tensor%t_type=tensor_t%t_type
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_matrix(mat_local,tensor)
+   SUBROUTINE tensor_create_matrix(mat_local,tensor,mode)
           TYPE(tensor_type), INTENT(INOUT) :: tensor
           TYPE(dbcsr_type), INTENT(INOUT)  :: mat_local
-          SELECT CASE(tensor%t_type)
+          INTEGER                          :: mode
+          SELECT CASE(mode)
           CASE (case_dbt)
                !CPASSERT(ALLOCATED(tensor%dbt))
                CALL dbt_create(mat_local,tensor%dbt)
@@ -134,19 +136,22 @@ CONTAINS
                !CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_create_low_matrix(mat_local,tensor%fm_t)
           END SELECT
+          tensor%t_type=mode
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_new(tensor, name, dist, map1_2d, map2_2d)
+   SUBROUTINE tensor_create_new(tensor, name, dist, map1_2d, map2_2d,mode)
             TYPE(tensor_type), INTENT(OUT)                    :: tensor
             CHARACTER(len=*), INTENT(IN)                      :: name
             TYPE(tensor_distribution_type), INTENT(INOUT)     :: dist
             INTEGER, DIMENSION(:), INTENT(IN)                 :: map1_2d
             INTEGER, DIMENSION(:), INTENT(IN)                 :: map2_2d
-            SELECT CASE(tensor%t_type)
+            INTEGER                                           :: mode
+            SELECT CASE(mode)
             CASE(case_dbt)
                 CALL dbt_create(tensor%dbt, name, dist%dist, map1_2d, map2_2d)
             CASE(case_fmt)
             END SELECT
+            tensor%t_type=mode
    END SUBROUTINE
 
 
@@ -246,20 +251,21 @@ CONTAINS
           END SELECT
    END SUBROUTINE
 
-   SUBROUTINE tensor_copy_matrix_to_tensor(matrix_in, tensor_out, summation)
+   SUBROUTINE tensor_copy_matrix_to_tensor(matrix_in, tensor_out, summation, mode)
       TYPE(dbcsr_type), TARGET, INTENT(IN)               :: matrix_in
       TYPE(tensor_type), INTENT(INOUT)                   :: tensor_out
       LOGICAL, INTENT(IN), OPTIONAL                      :: summation
+      INTEGER                                            :: mode
 
-
-      SELECT CASE (tensor_out%t_type)
+      SELECT CASE (mode)
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor_out%dbt))
            CALL dbt_copy_matrix_to_tensor(matrix_in, tensor_out%dbt, summation)
       CASE (case_fmt)
            !CPASSERT(ALLOCATED(tensor_out%fm_t))
            CALL tensor_copy_matrix_to_tensor_low(matrix_in, tensor_out%fm_t, summation)    
-      END SELECT 
+      END SELECT
+      tensor_out%t_type=mode 
 
    END SUBROUTINE
 

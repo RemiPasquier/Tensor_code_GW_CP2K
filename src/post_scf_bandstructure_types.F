@@ -275,6 +275,7 @@ MODULE post_scf_bandstructure_types
       INTEGER                                      :: n_tasks_Delta_R_local = -1
       INTEGER, DIMENSION(:), ALLOCATABLE           :: task_Delta_R
       INTEGER, DIMENSION(:, :), ALLOCATABLE        :: nblocks_3c
+      INTEGER                                      :: do_fmt
 
       ! cfm for k-dep overl mat S_µν(k), KS mat h_µν(k,spin) and mo coeff C_μn(k,spin) from SCF
       TYPE(cp_cfm_type), DIMENSION(:), ALLOCATABLE      :: cfm_s_kp

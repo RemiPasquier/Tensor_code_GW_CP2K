@@ -58,35 +58,37 @@ CONTAINS
       END SELECT
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_3c_tensor(t3c, dist_1, dist_2, dist_3, pgrid, sizes_1, sizes_2, sizes_3, map1, map2, name)
+   SUBROUTINE tensor_create_3c_tensor(t3c, dist_1, dist_2, dist_3, pgrid, sizes_1, sizes_2, sizes_3, map1, map2, name,mode)
       TYPE(tensor_type), INTENT(OUT)                     :: t3c
       INTEGER, ALLOCATABLE, DIMENSION(:), INTENT(OUT)    :: dist_1, dist_2, dist_3
       TYPE(tensor_pgrid_type), INTENT(IN)                :: pgrid
       INTEGER, DIMENSION(:), INTENT(IN)                  :: sizes_1, sizes_2, sizes_3, map1, map2
       CHARACTER(len=*), INTENT(IN)                       :: name
+      INTEGER                                            :: mode
 
       SELECT CASE(t3c%t_type)
       CASE (case_dbt)
             CALL create_3c_tensor(t3c%dbt, dist_1, dist_2, dist_3, pgrid%grid, sizes_1, sizes_2, sizes_3, map1, map2, name)
       CASE (case_fmt)
       END SELECT
-
+      t3c%t_type=mode
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_2c_tensor(t2c, dist_1, dist_2, pgrid, sizes_1, sizes_2, order, name)
+   SUBROUTINE tensor_create_2c_tensor(t2c, dist_1, dist_2, pgrid, sizes_1, sizes_2, order, name, mode)
       TYPE(tensor_type), INTENT(OUT)                     :: t2c
       INTEGER, ALLOCATABLE, DIMENSION(:), INTENT(OUT)    :: dist_1, dist_2
       TYPE(tensor_pgrid_type), INTENT(IN)                :: pgrid
       INTEGER, DIMENSION(:), INTENT(IN)                  :: sizes_1, sizes_2
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: order
       CHARACTER(len=*), INTENT(IN)                       :: name
+      INTEGER                                            :: mode
 
       SELECT CASE(t2c%t_type)
       CASE (case_dbt)
             CALL create_2c_tensor(t2c%dbt, dist_1, dist_2, pgrid%grid, sizes_1, sizes_2, order, name)
       CASE (case_fmt)
       END SELECT
-
+      t2c%t_type=mode
    END SUBROUTINE
 
    SUBROUTINE tensor_get_tensor_occupancy(tensor, nze, occ)
