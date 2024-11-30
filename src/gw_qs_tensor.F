@@ -50,34 +50,35 @@ CONTAINS
       REAL(dp), INTENT(IN), OPTIONAL                     :: RI_range
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: img_to_RI_cell
       INTEGER, DIMENSION(:, :, :), OPTIONAL, POINTER     :: cell_to_index_ext
-      
+      TYPE(dbt_type), DIMENSION(:,:),ALLOCATABLE         :: auxdbt
      SELECT CASE(t3c(1,1)%t_type)
      CASE (case_dbt)
-            CALL build_3c_integrals(t3c%dbt, filter_eps, qs_env, &
+            ALLOCATE(auxdbt(size(t3c,1),size(t3c,2)))
+            auxdbt=t3c%dbt  
+            CALL build_3c_integrals(auxdbt, filter_eps, qs_env, &
                                  nl_3c, basis_i, basis_j, basis_k, &
                                  potential_parameter, int_eps, &
                                  op_pos, do_kpoints, do_hfx_kpoints, desymmetrize, cell_sym, &
                                  bounds_i, bounds_j, bounds_k, &
                                  RI_range, img_to_RI_cell, cell_to_index_ext)
+            t3c%dbt=auxdbt
       !CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_3c_tensor(t3c, dist_1, dist_2, dist_3, pgrid, sizes_1, sizes_2, sizes_3, map1, map2, name,mode,unit_nt)
+   SUBROUTINE tensor_create_3c_tensor(t3c, dist_1, dist_2, dist_3, pgrid, sizes_1, sizes_2, sizes_3, map1, map2, name,mode)
       TYPE(tensor_type)                 :: t3c
       INTEGER, ALLOCATABLE, DIMENSION(:)    :: dist_1, dist_2, dist_3
       TYPE(tensor_pgrid_type)                :: pgrid
       INTEGER, DIMENSION(:)            :: sizes_1, sizes_2, sizes_3, map1, map2
       CHARACTER(len=*)                       :: name
-      INTEGER                                            :: mode,unit_nr
+      INTEGER                                            :: mode
 
       SELECT CASE(mode)
       CASE (case_dbt)
-            !ALLOCATE(t3c%dbt)
             CALL create_3c_tensor(t3c%dbt, dist_1, dist_2, dist_3, pgrid%grid, sizes_1, sizes_2, sizes_3, map1, map2, name)
-            CALL dbt_write_tensor_info(t3c%dbt, unit_nr, .TRUE.)
       !CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
@@ -85,20 +86,18 @@ CONTAINS
       t3c%t_type=mode
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_2c_tensor(t2c, dist_1, dist_2, pgrid, sizes_1, sizes_2, order, name, mode, unit_nr)
+   SUBROUTINE tensor_create_2c_tensor(t2c, dist_1, dist_2, pgrid, sizes_1, sizes_2, order, name, mode)
       TYPE(tensor_type), INTENT(OUT)                     :: t2c
       INTEGER, ALLOCATABLE, DIMENSION(:), INTENT(OUT)    :: dist_1, dist_2
       TYPE(tensor_pgrid_type), INTENT(IN)                :: pgrid
       INTEGER, DIMENSION(:), INTENT(IN)                  :: sizes_1, sizes_2
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: order
       CHARACTER(len=*), INTENT(IN)                       :: name
-      INTEGER                                            :: mode,unit_nr
+      INTEGER                                            :: mode
 
       SELECT CASE(mode)
       CASE (case_dbt)
-            !ALLOCATE(t2c%dbt)
             CALL create_2c_tensor(t2c%dbt, dist_1, dist_2, pgrid%grid, sizes_1, sizes_2, order, name)
-            CALL dbt_write_tensor_info(t2c%dbt, unit_nr, .TRUE.)
       !CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")

@@ -59,7 +59,7 @@ MODULE gw_utils
         tensor_clear, tensor_create, tensor_destroy, tensor_filter, tensor_iterator_blocks_left, &
         tensor_iterator_next_block, tensor_iterator_start, tensor_iterator_stop, tensor_iterator_type, &
         tensor_mp_environ_pgrid, tensor_pgrid_create, tensor_pgrid_destroy, tensor_pgrid_type, tensor_type
-
+   USE dbt_api,                         ONLY: dbt_write_tensor_info
    USE distribution_2d_types,           ONLY: distribution_2d_type
    USE gw_communication,                ONLY: fm_to_local_array
    USE gw_integrals,                    ONLY: build_3c_integral_block
@@ -2192,6 +2192,7 @@ CONTAINS
       DO j_cell = 1, nimages_3c
          DO k_cell = 1, nimages_3c
             CALL tensor_create(bs_env%t_RI_AO__AO, bs_env%t_3c_int(j_cell, k_cell))
+            !CALL dbt_write_tensor_info(bs_env%t_3c_int(j_cell, k_cell)%dbt,bs_env%unit_nr,.TRUE.)
          END DO
       END DO
 

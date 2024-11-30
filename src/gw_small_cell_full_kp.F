@@ -33,7 +33,8 @@ MODULE gw_small_cell_full_kp
                                               dbt_copy,&
                                               dbt_create,&
                                               dbt_destroy,&
-                                              dbt_type
+                                              dbt_type,&
+                                              dbt_write_tensor_info
    USE gw_communication,         ONLY: fm_to_local_array,&
                                               fm_to_local_tensor,&
                                               local_array_to_fm,&
@@ -352,7 +353,10 @@ CONTAINS
 
 !      CALL tensor_create(t_3c_int)
       CALL tensor_clear(t_3c_int)
-      IF (j_cell < k_cell) THEN
+      !PRINT*, "tensor info: "
+      !CALL dbt_write_tensor_info(t_3c_int%dbt,bs_env%unit_nr,.TRUE.) 
+      !PRINT*, "rank: ",bs_env%para_env%mepos, ", test jk: ", j_cell, k_cell
+      IF (j_cell < k_cell) THEN 
          CALL tensor_copy(bs_env%t_3c_int(k_cell, j_cell), t_3c_int, order=[1, 3, 2])
       ELSE
          CALL tensor_copy(bs_env%t_3c_int(j_cell, k_cell), t_3c_int)
