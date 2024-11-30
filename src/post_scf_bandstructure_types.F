@@ -449,7 +449,7 @@ CONTAINS
    SUBROUTINE safe_tensor_destroy(t)
       TYPE(tensor_type)                                     :: t
       
-      IF (ASSOCIATED(t%dbt%matrix_rep) .or. ASSOCIATED(t%fm_t%fm)) CALL tensor_destroy(t)
+      IF (ASSOCIATED(t%dbt%matrix_rep) .or. ASSOCIATED(t%fm_t%fm%local_data)) CALL tensor_destroy(t)
 
    END SUBROUTINE safe_tensor_destroy
 

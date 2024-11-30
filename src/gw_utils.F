@@ -895,7 +895,7 @@ CONTAINS
       ! inspired from rpa_im_time.F / hfx_types.F
 
       pdims_2d = 0
-      CALL tensor_pgrid_create(bs_env%t_G, bs_env%para_env_tensor, pdims_2d, pgrid_2d)
+      CALL tensor_pgrid_create(bs_env%t_G, bs_env%para_env_tensor, pdims_2d, pgrid_2d,mode=bs_env%do_fmt)
 
       CALL tensor_create_2c_tensor(bs_env%t_G, dist_1, dist_2, pgrid_2d, sizes_AO, sizes_AO, &
                             name="(AO | AO)",mode=bs_env%do_fmt)
@@ -956,7 +956,7 @@ CONTAINS
       ELSE
          tensmode=1
       END IF
-      CALL tensor_pgrid_create(tensor,para_env, pdims_3d, pgrid_3d)
+      CALL tensor_pgrid_create(tensor,para_env, pdims_3d, pgrid_3d,mode=tensmode)
       CALL tensor_create_3c_tensor(tensor, dist_RI, dist_AO_1, dist_AO_2, &
                             pgrid_3d, sizes_RI, sizes_AO, sizes_AO, &
                             map1=map1, map2=map2, name=tensor_name,mode=tensmode)

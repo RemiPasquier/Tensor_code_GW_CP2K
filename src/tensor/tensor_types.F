@@ -31,7 +31,9 @@ MODULE tensor_types
                                               dbt_pgrid_type, &
                                               dbt_iterator_blocks_left, &
                                               dbt_iterator_num_blocks, &
-                                              dbt_distribution_type
+                                              dbt_distribution_type, &
+                                              dbt_ndims, &
+                                              dbt_write_tensor_info
                                                
    
    USE cp_dbcsr_api,                    ONLY: dbcsr_type, &
@@ -52,7 +54,7 @@ MODULE tensor_types
 
    TYPE fmt_type
       ! @Remi: check whether we need pointers or not
-      TYPE(cp_fm_type), POINTER  :: fm => null()
+      TYPE(cp_fm_type)           :: fm
       INTEGER                    :: rank
       ! dimension of index_sizes is rank
       INTEGER(KIND=int_8), DIMENSION(:), ALLOCATABLE   :: index_sizes
@@ -71,11 +73,11 @@ MODULE tensor_types
 
 
    TYPE tensor_iterator_type
-        TYPE(dbt_iterator_type), POINTER :: iter
+        TYPE(dbt_iterator_type)      :: iter
    END TYPE
 
    TYPE tensor_pgrid_type
-        TYPE(dbt_pgrid_type), POINTER :: grid
+        TYPE(dbt_pgrid_type)         :: grid
    END TYPE
 
    TYPE tensor_distribution_type
@@ -98,9 +100,11 @@ CONTAINS
           CASE (case_dbt)
                !!CPASSERT(ALLOCATED(tensor%dbt))
                CALL dbt_clear(tensor%dbt)
-          CASE (case_fmt)
+          !CASE (case_fmt)
                !!CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_clear_low(tensor%fm_t)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
    END SUBROUTINE
 
@@ -108,70 +112,99 @@ CONTAINS
 !@Remi : there may be a more clever way of doing this using interfaces, which would avoid uselessly
 !        reduplicating the parameters between the dbt and scalapack implementations, although I can
 !        see it causing issues in some cases as the procedures might have exactly the same parameters.
-   SUBROUTINE tensor_create_template(tensor_t,tensor)
+   SUBROUTINE tensor_create_template(tensor_t,tensor,unit_nr)
           TYPE(tensor_type), INTENT(INOUT) :: tensor_t,tensor
+          INTEGER                          :: unit_nr
           !!CPASSERT(tensor_t%t_type==tensor%t_type)
           SELECT CASE(tensor_t%t_type)
           CASE (case_dbt)
+                !ALLOCATE(tensor%dbt)
                !CPASSERT(ALLOCATED(tensor_t%dbt))
                !CPASSERT(ALLOCATED(tensor%dbt))
                CALL dbt_create(tensor_t%dbt,tensor%dbt)
-          CASE (case_fmt)
+               CPASSERT(ASSOCIATED(tensor%dbt%matrix_rep))
+               CALL dbt_write_tensor_info(tensor, unit_nr, .TRUE.) 
+          !CASE (case_fmt)
                !CPASSERT(ALLOCATED(tensor_t%fm_t))
                !CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_create_low_template(tensor_t%fm_t,tensor%fm_t)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized") 
           END SELECT
           tensor%t_type=tensor_t%t_type
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_matrix(mat_local,tensor,mode)
+   SUBROUTINE tensor_create_matrix(mat_local,tensor,mode,unit_nr)
           TYPE(tensor_type), INTENT(INOUT) :: tensor
           TYPE(dbcsr_type), INTENT(INOUT)  :: mat_local
-          INTEGER                          :: mode
+          INTEGER                          :: mode,unit_nr
           SELECT CASE(mode)
           CASE (case_dbt)
+                !ALLOCATE(tensor%dbt)
                !CPASSERT(ALLOCATED(tensor%dbt))
                CALL dbt_create(mat_local,tensor%dbt)
-          CASE (case_fmt)
+               CALL dbt_write_tensor_info(tensor, unit_nr, .TRUE.)
+          !CASE (case_fmt)
                !CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_create_low_matrix(mat_local,tensor%fm_t)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
           tensor%t_type=mode
    END SUBROUTINE
 
-   SUBROUTINE tensor_create_new(tensor, name, dist, map1_2d, map2_2d,mode)
+   SUBROUTINE tensor_create_new(tensor, name, dist, map1_2d, map2_2d,mode,unit_nr)
             TYPE(tensor_type), INTENT(OUT)                    :: tensor
             CHARACTER(len=*), INTENT(IN)                      :: name
             TYPE(tensor_distribution_type), INTENT(INOUT)     :: dist
             INTEGER, DIMENSION(:), INTENT(IN)                 :: map1_2d
             INTEGER, DIMENSION(:), INTENT(IN)                 :: map2_2d
-            INTEGER                                           :: mode
+            INTEGER                                           :: mode,unit_nr
             SELECT CASE(mode)
             CASE(case_dbt)
-                CALL dbt_create(tensor%dbt, name, dist%dist, map1_2d, map2_2d)
+                !ALLOCATE(tensor%dbt)
+                CALL dbt_create(tensor%dbt, name, dist%dist, map1_2d, map2_2d, unit_nr)
+                CALL dbt_write_tensor_info(tensor, bs_env%unit_nr, .TRUE.)
             CASE(case_fmt)
+            CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
             tensor%t_type=mode
    END SUBROUTINE
 
 
-   SUBROUTINE tensor_copy(tensor_in, tensor_out, order, summation, bounds, move_data, unit_nr)
-          TYPE(tensor_type), INTENT(INOUT), TARGET      :: tensor_in, tensor_out
-          INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL   :: order
+   SUBROUTINE tensor_copy(tensor_in, tensor_out, order, summation, bounds, move_data, unit_nr, unit_io)
+          TYPE(tensor_type), INTENT(INOUT),target              :: tensor_in, tensor_out
+          INTEGER, DIMENSION(dbt_ndims(tensor_in%dbt)), INTENT(IN), OPTIONAL   :: order
           LOGICAL, INTENT(IN), OPTIONAL                 :: summation, move_data
-          INTEGER, DIMENSION(:,:),INTENT(IN), OPTIONAL  :: bounds
+          INTEGER, DIMENSION(2,dbt_ndims(tensor_in%dbt)),INTENT(IN), OPTIONAL  :: bounds
           INTEGER, INTENT(IN), OPTIONAL                 :: unit_nr
+          !TYPE(dbt_type), target                        :: dbt_in,dbt_out
           !CPASSERT(tensor_in%t_type==tensor_out%t_type)
           SELECT CASE(tensor_in%t_type)
           CASE (case_dbt)
+                CPASSERT(ASSOCIATED(tensor_out%dbt%matrix_rep))
+               !dbt_in=tensor_in%dbt
+               !CALL dbt_create(tensor_in%dbt,dbt_in)
+               !CALL dbt_create(tensor_in%dbt,dbt_out)
+               CALL dbt_write_tensor_info(tensor_in, unit_io, .TRUE.)
+               CALL dbt_write_tensor_info(tensor_out, unit_io, .TRUE.)  
+               !ALLOCATE(tensor_out%dbt)
+               !CALL dbt_copy(tensor_in%dbt,dbt_in)
                !CPASSERT(ALLOCATED(tensor_in%dbt))
                !CPASSERT(ALLOCATED(tensor_out%dbt))
-               CALL dbt_copy(tensor_in%dbt, tensor_out%dbt, order, summation, bounds, move_data, unit_nr)
-          CASE (case_fmt)
+               CALL dbt_copy(tensor_in%dbt, tensor_out%dbt, order, summation, bounds, move_data, unit_nr) 
+               !CALL dbt_create(tensor_in%dbt,tensor_out%dbt)
+               !tensor_out%dbt=dbt_out 
+               !CALL dbt_copy(dbt_out,tensor_out%dbt)
+          !CASE (case_fmt)
                !CPASSERT(ALLOCATED(tensor_in%fm_t))
                !CPASSERT(ALLOCATED(tensor_out%fm_t))
                CALL tensor_copy_low(tensor_in%fm_t, tensor_out%fm_t, order)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
+          tensor_out%t_type=tensor_in%t_type
    END SUBROUTINE
 
    SUBROUTINE tensor_destroy(tensor)
@@ -180,9 +213,11 @@ CONTAINS
           CASE (case_dbt)
                !CPASSERT(ALLOCATED(tensor%dbt))
                CALL dbt_destroy(tensor%dbt)
-          CASE (case_fmt)
+          !CASE (case_fmt)
                !CPASSERT(ALLOCATED(tensor%fm_t))
                CALL tensor_destroy_low(tensor%fm_t)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
    END SUBROUTINE 
    
@@ -237,7 +272,7 @@ CONTAINS
                            bounds_1, bounds_2, bounds_3, &
                            optimize_dist, pgrid_opt_1, pgrid_opt_2, pgrid_opt_3, &
                            filter_eps, flop, move_data, retain_sparsity, unit_nr, log_verbose)
-          CASE (case_fmt)
+          !CASE (case_fmt)
                !CPASSERT(ALLOCATED(tensor_1%fm_t))
                !CPASSERT(ALLOCATED(tensor_2%fm_t))
                !CPASSERT(ALLOCATED(tensor_3%fm_t))
@@ -248,6 +283,8 @@ CONTAINS
                            bounds_1, bounds_2, bounds_3, &
                            optimize_dist, pgrid_opt_1, pgrid_opt_2, pgrid_opt_3, &
                            filter_eps, flop, move_data, retain_sparsity, unit_nr, log_verbose)
+          CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
    END SUBROUTINE
 
@@ -261,9 +298,11 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor_out%dbt))
            CALL dbt_copy_matrix_to_tensor(matrix_in, tensor_out%dbt, summation)
-      CASE (case_fmt)
+      !CASE (case_fmt)
            !CPASSERT(ALLOCATED(tensor_out%fm_t))
-           CALL tensor_copy_matrix_to_tensor_low(matrix_in, tensor_out%fm_t, summation)    
+           CALL tensor_copy_matrix_to_tensor_low(matrix_in, tensor_out%fm_t, summation)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")    
       END SELECT
       tensor_out%t_type=mode 
 
@@ -278,9 +317,11 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor_in%dbt))
            CALL dbt_copy_tensor_to_matrix(tensor_in%dbt, matrix_out, summation)
-      CASE (case_fmt)
+      !CASE (case_fmt)
            !CPASSERT(ALLOCATED(tensor_in%fm_t))
            CALL tensor_copy_tensor_to_matrix_low(tensor_in%fm_t, matrix_out, summation)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END SUBROUTINE
 
@@ -291,9 +332,11 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt))
            CALL dbt_filter(tensor%dbt, eps)
-      CASE (case_fmt)
+      !CASE (case_fmt)
            !CPASSERT(ALLOCATED(tensor%fm_t))
            CALL tensor_filter_low(tensor%fm_t, eps)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END SUBROUTINE
 
@@ -306,7 +349,9 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt))
            CALL dbt_iterator_next_block(iterator%iter, ind_nd, blk_size, blk_offset)
-      CASE (case_fmt)
+      !CASE (case_fmt)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END SUBROUTINE
 
@@ -319,7 +364,9 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt))
            tensor_iterator_blocks_left=dbt_iterator_blocks_left(iterator%iter)
-      CASE (case_fmt)
+      !CASE (case_fmt)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END FUNCTION    
 
@@ -331,7 +378,9 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt))
            tensor_iterator_num_blocks=dbt_iterator_num_blocks(iterator%iter)
-      CASE (case_fmt)
+      !CASE (case_fmt)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
    END FUNCTION    
 
@@ -342,7 +391,9 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt))
            CALL dbt_iterator_start(iterator%iter,tensor%dbt)
-      CASE (case_fmt)
+      !CASE (case_fmt)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT 
    END SUBROUTINE
 
@@ -353,7 +404,9 @@ CONTAINS
       CASE (case_dbt)
            !CPASSERT(ALLOCATED(tensor%dbt)) 
            CALL dbt_iterator_stop(iterator%iter)
-      CASE (case_fmt)
+      !CASE (case_fmt)
+      CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
       END SELECT 
    END SUBROUTINE
 
@@ -367,21 +420,26 @@ CONTAINS
             CASE (case_dbt)
                  !CPASSERT(ALLOCATED(tensor%dbt))
                  CALL dbt_mp_environ_pgrid(pgrid%grid, dims, task_coor)
-            CASE (case_fmt)
+            !CASE (case_fmt)
+            CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
    END SUBROUTINE
 
-   SUBROUTINE tensor_pgrid_create(tensor, mp_comm, dims, pgrid, tensor_dims)
+   SUBROUTINE tensor_pgrid_create(tensor, mp_comm, dims, pgrid, tensor_dims,mode)
             TYPE(tensor_type), INTENT(IN)   :: tensor
             CLASS(mp_comm_type), INTENT(IN) :: mp_comm
             INTEGER, DIMENSION(:), INTENT(INOUT) :: dims
             TYPE(tensor_pgrid_type), INTENT(OUT) :: pgrid
             INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL :: tensor_dims
-            SELECT CASE (tensor%t_type)
+            INTEGER                                     :: mode
+            SELECT CASE (mode)
             CASE (case_dbt)
                  !CPASSERT(ALLOCATED(tensor%dbt))
                  CALL dbt_pgrid_create(mp_comm, dims, pgrid%grid, tensor_dims)
-            CASE (case_fmt)
+            !CASE (case_fmt)
+            CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
 
    END SUBROUTINE
@@ -394,7 +452,9 @@ CONTAINS
             CASE (case_dbt)
                  !CPASSERT(ALLOCATED(tensor%dbt))
                  CALL dbt_pgrid_destroy(pgrid%grid,keep_comm)
-            CASE (case_fmt)
+            !CASE (case_fmt)
+            CASE DEFAULT
+               CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
 
    END SUBROUTINE
