@@ -62,6 +62,7 @@ CONTAINS
                                  bounds_i, bounds_j, bounds_k, &
                                  RI_range, img_to_RI_cell, cell_to_index_ext)
             t3c%dbt=auxdbt
+            DEALLOCATE(auxdbt)
       !CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
