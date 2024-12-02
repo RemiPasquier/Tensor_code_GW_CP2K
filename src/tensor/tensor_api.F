@@ -1,6 +1,6 @@
 MODULE tensor_api
 
-   USE tensor_types,                       ONLY: tensor_type, tensor_clear, &
+   USE tensor_interfaces,                       ONLY: tensor_type, tensor_clear, &
                                                  tensor_create, tensor_destroy, &
                                                  tensor_copy, tensor_contract, &
                                                  tensor_copy_matrix_to_tensor, &
