@@ -80,7 +80,7 @@ CONTAINS
           SELECT CASE(tensor%t_type)
           CASE (case_dbt)
                CALL dbt_clear(tensor%dbt)
-               !CALL tensor_clear_low(tensor%fm_t)
+          CASE (case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
@@ -92,7 +92,7 @@ CONTAINS
           SELECT CASE(tensor_t%t_type)
           CASE (case_dbt)
                CALL dbt_create(tensor_t%dbt,tensor%dbt)
-               !CALL tensor_create_low_template(tensor_t%fm_t,tensor%fm_t)
+          CASE (case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized") 
           END SELECT
@@ -106,7 +106,7 @@ CONTAINS
           SELECT CASE(mode)
           CASE (case_dbt)
                CALL dbt_create(mat_local,tensor%dbt)
-               !CALL tensor_create_low_matrix(mat_local,tensor%fm_t)
+          CASE(case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
@@ -140,7 +140,7 @@ CONTAINS
           SELECT CASE(tensor_in%t_type)
           CASE (case_dbt)
                CALL dbt_copy(tensor_in%dbt, tensor_out%dbt, order, summation, bounds, move_data, unit_nr) 
-               !CALL tensor_copy_low(tensor_in%fm_t, tensor_out%fm_t, order)
+          CASE (case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
@@ -152,7 +152,7 @@ CONTAINS
           SELECT CASE(tensor%t_type)
           CASE (case_dbt)
                CALL dbt_destroy(tensor%dbt)
-               !CALL tensor_destroy_low(tensor%fm_t)
+          CASE (case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
@@ -204,13 +204,7 @@ CONTAINS
                            bounds_1, bounds_2, bounds_3, &
                            optimize_dist, pgrid_opt_1, pgrid_opt_2, pgrid_opt_3, &
                            filter_eps, flop, move_data, retain_sparsity, unit_nr, log_verbose)
-               !CALL  tensor_contract_low(alpha, tensor_1%fm_t, tensor_2%fm_t, beta, tensor_3%fm_t, &
-               !            contract_1, notcontract_1, &
-               !            contract_2, notcontract_2, &
-               !            map_1, map_2, &
-               !            bounds_1, bounds_2, bounds_3, &
-               !            optimize_dist, pgrid_opt_1, pgrid_opt_2, pgrid_opt_3, &
-               !            filter_eps, flop, move_data, retain_sparsity, unit_nr, log_verbose)
+          CASE (case_fmt)
           CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
           END SELECT
@@ -221,11 +215,10 @@ CONTAINS
       TYPE(tensor_type), INTENT(INOUT)                   :: tensor_out
       LOGICAL, INTENT(IN), OPTIONAL                      :: summation
       INTEGER                                            :: mode
-
       SELECT CASE (mode)
       CASE (case_dbt)
            CALL dbt_copy_matrix_to_tensor(matrix_in, tensor_out%dbt, summation)
-           !CALL tensor_copy_matrix_to_tensor_low(matrix_in, tensor_out%fm_t, summation)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")    
       END SELECT
@@ -241,7 +234,7 @@ CONTAINS
       SELECT CASE (tensor_in%t_type)
       CASE (case_dbt)
            CALL dbt_copy_tensor_to_matrix(tensor_in%dbt, matrix_out, summation)
-           !CALL tensor_copy_tensor_to_matrix_low(tensor_in%fm_t, matrix_out, summation)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -253,7 +246,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            CALL dbt_filter(tensor%dbt, eps)
-           !CALL tensor_filter_low(tensor%fm_t, eps)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -267,6 +260,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            CALL dbt_iterator_next_block(iterator%iter, ind_nd, blk_size, blk_offset)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -280,7 +274,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            tensor_iterator_blocks_left=dbt_iterator_blocks_left(iterator%iter)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -293,7 +287,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            tensor_iterator_num_blocks=dbt_iterator_num_blocks(iterator%iter)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -305,7 +299,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            CALL dbt_iterator_start(iterator%iter,tensor%dbt)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT 
@@ -317,7 +311,7 @@ CONTAINS
       SELECT CASE (tensor%t_type)
       CASE (case_dbt)
            CALL dbt_iterator_stop(iterator%iter)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT 
@@ -332,7 +326,7 @@ CONTAINS
             SELECT CASE (tensor%t_type)
             CASE (case_dbt)
                  CALL dbt_mp_environ_pgrid(pgrid%grid, dims, task_coor)
-            !CASE (case_fmt)
+            CASE (case_fmt)
             CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
@@ -348,7 +342,7 @@ CONTAINS
             SELECT CASE (mode)
             CASE (case_dbt)
                  CALL dbt_pgrid_create(mp_comm, dims, pgrid%grid, tensor_dims)
-            !CASE (case_fmt)
+            CASE (case_fmt)
             CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
             END SELECT
@@ -362,7 +356,7 @@ CONTAINS
             SELECT CASE (tensor%t_type)
             CASE (case_dbt)
                  CALL dbt_pgrid_destroy(pgrid%grid,keep_comm)
-            !CASE (case_fmt)
+            CASE (case_fmt)
             CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
             END SELECT

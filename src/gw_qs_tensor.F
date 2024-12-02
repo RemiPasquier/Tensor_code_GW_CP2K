@@ -63,7 +63,7 @@ CONTAINS
                                  RI_range, img_to_RI_cell, cell_to_index_ext)
             t3c%dbt=auxdbt
             DEALLOCATE(auxdbt)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -80,7 +80,7 @@ CONTAINS
       SELECT CASE(mode)
       CASE (case_dbt)
             CALL create_3c_tensor(t3c%dbt, dist_1, dist_2, dist_3, pgrid%grid, sizes_1, sizes_2, sizes_3, map1, map2, name)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -99,7 +99,7 @@ CONTAINS
       SELECT CASE(mode)
       CASE (case_dbt)
             CALL create_2c_tensor(t2c%dbt, dist_1, dist_2, pgrid%grid, sizes_1, sizes_2, order, name)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
@@ -114,7 +114,7 @@ CONTAINS
       SELECT CASE(tensor%t_type)
       CASE (case_dbt)
            CALL get_tensor_occupancy(tensor%dbt,nze,occ)
-      !CASE (case_fmt)
+      CASE (case_fmt)
       CASE DEFAULT
                CPABORT("ERROR: GW tensor type not recognized")
       END SELECT
